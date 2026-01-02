@@ -1,0 +1,175 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Project Stone Monkey - MCP Gateway</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, sans-serif;
+            background: linear-gradient(135deg, #1a1a2e 0%, #16213e 50%, #0f3460 100%);
+            min-height: 100vh;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            color: #e4e4e7;
+        }
+        .container {
+            text-align: center;
+            padding: 2rem;
+        }
+        h1 {
+            font-size: 3rem;
+            font-weight: 300;
+            letter-spacing: 0.1em;
+            margin-bottom: 0.5rem;
+            background: linear-gradient(90deg, #f59e0b, #ef4444, #ec4899);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            background-clip: text;
+        }
+        .subtitle {
+            font-size: 1.2rem;
+            color: #94a3b8;
+            margin-bottom: 3rem;
+            font-weight: 300;
+        }
+        .status {
+            display: inline-flex;
+            align-items: center;
+            gap: 0.5rem;
+            padding: 0.5rem 1rem;
+            background: rgba(34, 197, 94, 0.1);
+            border: 1px solid rgba(34, 197, 94, 0.3);
+            border-radius: 2rem;
+            color: #22c55e;
+            font-size: 0.9rem;
+            margin-bottom: 2rem;
+        }
+        .status::before {
+            content: '';
+            width: 8px;
+            height: 8px;
+            background: #22c55e;
+            border-radius: 50%;
+            animation: pulse 2s infinite;
+        }
+        @keyframes pulse {
+            0%, 100% { opacity: 1; }
+            50% { opacity: 0.5; }
+        }
+        .endpoints {
+            display: grid;
+            gap: 1rem;
+            margin-top: 2rem;
+            text-align: left;
+        }
+        .endpoint {
+            background: rgba(255, 255, 255, 0.05);
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            border-radius: 0.5rem;
+            padding: 1rem 1.5rem;
+            transition: all 0.2s;
+        }
+        .endpoint:hover {
+            background: rgba(255, 255, 255, 0.08);
+            border-color: rgba(255, 255, 255, 0.2);
+        }
+        .endpoint-method {
+            font-size: 0.7rem;
+            font-weight: 600;
+            padding: 0.2rem 0.5rem;
+            border-radius: 0.25rem;
+            margin-right: 0.5rem;
+        }
+        .method-get { background: #22c55e; color: #000; }
+        .method-post { background: #3b82f6; color: #fff; }
+        .endpoint-path {
+            font-family: 'SF Mono', Monaco, 'Courier New', monospace;
+            color: #f59e0b;
+        }
+        .endpoint-desc {
+            font-size: 0.85rem;
+            color: #64748b;
+            margin-top: 0.5rem;
+        }
+        .tools-count {
+            margin-top: 2rem;
+            font-size: 0.9rem;
+            color: #64748b;
+        }
+        .tools-count span {
+            color: #f59e0b;
+            font-weight: 600;
+        }
+        footer {
+            position: fixed;
+            bottom: 1rem;
+            font-size: 0.8rem;
+            color: #475569;
+        }
+        a {
+            color: #94a3b8;
+            text-decoration: none;
+        }
+        a:hover {
+            color: #e4e4e7;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>Project Stone Monkey</h1>
+        <p class="subtitle">NGINX MCP Gateway</p>
+
+        <div class="status">Gateway Online</div>
+
+        <div class="endpoints">
+            <div class="endpoint">
+                <span class="endpoint-method method-get">GET</span>
+                <span class="endpoint-path">/health</span>
+                <div class="endpoint-desc">Health check endpoint</div>
+            </div>
+            <div class="endpoint">
+                <span class="endpoint-method method-post">POST</span>
+                <span class="endpoint-path">/mcp</span>
+                <div class="endpoint-desc">MCP JSON-RPC endpoint (tools/list, tools/call)</div>
+            </div>
+            <div class="endpoint">
+                <span class="endpoint-method method-get">GET</span>
+                <span class="endpoint-path">/init</span>
+                <div class="endpoint-desc">Reload tool configuration</div>
+            </div>
+        </div>
+
+        <p class="tools-count" id="tools-count">Loading tools...</p>
+    </div>
+
+    <footer>
+        <a href="https://github.com/symagenic/ProjectStoneMonkey">github.com/symagenic/ProjectStoneMonkey</a>
+    </footer>
+
+    <script>
+        fetch('/mcp', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ jsonrpc: '2.0', method: 'tools/list', id: 1 })
+        })
+        .then(r => r.json())
+        .then(data => {
+            const count = data.result?.tools?.length || 0;
+            document.getElementById('tools-count').innerHTML =
+                `<span>${count}</span> tools available`;
+        })
+        .catch(() => {
+            document.getElementById('tools-count').textContent = 'Could not load tools';
+        });
+    </script>
+</body>
+</html>
