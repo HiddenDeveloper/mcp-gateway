@@ -151,23 +151,67 @@ function handleToolsList(r, request) {
 /**
  * Handle tools/call request
  * Routes to backend and transforms response
+ *
+ * Supports two routing modes:
+ * 1. Function-based (/execute): If tool has `function` property
+ * 2. Endpoint-based (legacy): Uses backend.endpoint directly
  */
 function handleToolCall(r, request) {
     var params = request.params || {};
     var toolName = params.name;
     var args = params.arguments || {};
-    
+
     if (!toolName) {
         return mcpError(r, -32602, 'Invalid params: missing tool name', request.id);
     }
-    
+
     var tool = toolRegistry[toolName];
     if (!tool) {
         return mcpError(r, -32602, 'Unknown tool: ' + toolName, request.id);
     }
-    
-    // Determine backend URL
-    var backendUrl = resolveBackend(tool);
+
+    // Check if tool uses function-based routing (/execute pattern)
+    if (tool.function) {
+        return handleFunctionCall(r, request, tool, args);
+    }
+
+    // Legacy endpoint-based routing
+    return handleEndpointCall(r, request, tool, args);
+}
+
+/**
+ * Handle function-based tool call via /execute endpoint
+ * Backend receives: { function: "name", arguments: {...} }
+ */
+function handleFunctionCall(r, request, tool, args) {
+    var backendName = tool.backend;
+    var backendUrl = routingConfig.backends ? routingConfig.backends[backendName] : null;
+
+    if (!backendUrl) {
+        backendUrl = routingConfig.default || 'http://localhost:8080';
+    }
+
+    var executeBody = {
+        function: tool.function,
+        arguments: args
+    };
+
+    var options = {
+        method: 'POST',
+        body: JSON.stringify(executeBody)
+    };
+
+    // Route through internal location that proxies to backend
+    r.subrequest('/execute/' + backendName, options, function(reply) {
+        handleBackendResponse(r, request, tool, reply);
+    });
+}
+
+/**
+ * Handle legacy endpoint-based tool call
+ * Backend endpoint is called directly with arguments
+ */
+function handleEndpointCall(r, request, tool, args) {
     var endpoint = tool.backend.endpoint;
     var method = tool.backend.method || 'POST';
 
@@ -176,7 +220,7 @@ function handleToolCall(r, request) {
         method: method,
         body: method !== 'GET' ? JSON.stringify(args) : undefined
     };
-    
+
     // For GET requests, convert args to query string
     if (method === 'GET' && Object.keys(args).length > 0) {
         var queryParams = [];
@@ -185,7 +229,7 @@ function handleToolCall(r, request) {
         }
         endpoint += '?' + queryParams.join('&');
     }
-    
+
     r.subrequest('/backend' + endpoint, options, function(reply) {
         handleBackendResponse(r, request, tool, reply);
     });

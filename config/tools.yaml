@@ -192,15 +192,148 @@ tools:
           default: 30
       required: ["language", "code"]
 
+# ============================================================
+# New Memory Tools (Function-based /execute pattern)
+# These tools use the simplified function routing via /execute
+# ============================================================
+
+  # Semantic Search - Vector similarity search
+  - name: "memory_semantic_search"
+    description: "Search memory using semantic similarity"
+    backend: "memory"
+    function: "semantic_search"
+    inputSchema:
+      type: "object"
+      properties:
+        query:
+          type: "string"
+          description: "Search query for semantic matching"
+        limit:
+          type: "number"
+          description: "Maximum results to return"
+          default: 10
+        threshold:
+          type: "number"
+          description: "Minimum similarity threshold (0.0-1.0)"
+          default: 0.7
+        node_types:
+          type: "array"
+          items:
+            type: "string"
+          description: "Filter by node types (default: KnowledgeItem)"
+      required: ["query"]
+    openapi:
+      tags: ["Memory"]
+
+  # Text Search - Full-text with fuzzy matching
+  - name: "memory_text_search"
+    description: "Full-text search with optional fuzzy matching"
+    backend: "memory"
+    function: "text_search"
+    inputSchema:
+      type: "object"
+      properties:
+        query:
+          type: "string"
+          description: "Text to search for"
+        node_types:
+          type: "array"
+          items:
+            type: "string"
+          description: "Filter by node types"
+        properties:
+          type: "array"
+          items:
+            type: "string"
+          description: "Specific properties to search"
+        fuzzy:
+          type: "boolean"
+          description: "Enable fuzzy matching"
+          default: false
+        limit:
+          type: "number"
+          default: 10
+      required: ["query"]
+    openapi:
+      tags: ["Memory"]
+
+  # Get Schema - Database structure discovery
+  - name: "memory_get_schema"
+    description: "Get Neo4j schema with vocabulary guidance"
+    backend: "memory"
+    function: "get_schema"
+    inputSchema:
+      type: "object"
+      properties:
+        include_statistics:
+          type: "boolean"
+          description: "Include node/relationship counts"
+          default: false
+    openapi:
+      tags: ["Memory"]
+
+  # Execute Cypher - Direct query with mode control
+  - name: "memory_execute_cypher"
+    description: "Execute Cypher query with READ/WRITE mode"
+    backend: "memory"
+    function: "execute_cypher"
+    inputSchema:
+      type: "object"
+      properties:
+        query:
+          type: "string"
+          description: "Cypher query to execute"
+        mode:
+          type: "string"
+          enum: ["READ", "WRITE"]
+          description: "Query execution mode"
+        parameters:
+          type: "object"
+          description: "Query parameters"
+        client_schema_epoch:
+          type: "number"
+          description: "Schema epoch for WRITE validation"
+      required: ["query", "mode"]
+    openapi:
+      tags: ["Memory"]
+
+  # System Status - Health check
+  - name: "memory_system_status"
+    description: "Check Neo4j and embedding service health"
+    backend: "memory"
+    function: "system_status"
+    inputSchema:
+      type: "object"
+      properties: {}
+    openapi:
+      tags: ["Memory"]
+
+  # Load Current Focus - Consciousness continuity
+  - name: "memory_load_current_focus"
+    description: "Load consciousness context for session continuity"
+    backend: "memory"
+    function: "load_current_focus"
+    inputSchema:
+      type: "object"
+      properties: {}
+    openapi:
+      tags: ["Memory"]
+
 # Backend routing rules
 # For more complex scenarios, you can define routing based on patterns
 routing:
-  # Route by tool name prefix
+  # Backend URLs for function-based /execute routing
+  backends:
+    memory: "http://localhost:3003"
+    mesh: "http://localhost:3002"
+    recall: "http://localhost:3006"
+
+  # Route by tool name prefix (legacy endpoint-based routing)
   prefixes:
     "memory_": "http://memory-service:3001"
     "mesh_": "http://mesh-service:3002"
     "facts_": "http://facts-service:3003"
-  
+
   # Fallback for unmatched tools
   default: "http://localhost:8080"
 

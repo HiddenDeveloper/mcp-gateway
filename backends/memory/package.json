@@ -1,0 +1,17 @@
+{
+  "name": "@nginx-mcp-gateway/memory-backend",
+  "version": "1.0.0",
+  "description": "Memory function backend for NGINX MCP Gateway",
+  "type": "module",
+  "scripts": {
+    "start": "bun run server.ts",
+    "dev": "bun run --watch server.ts"
+  },
+  "dependencies": {
+    "neo4j-driver": "^5.25.0",
+    "zod": "^3.23.8"
+  },
+  "devDependencies": {
+    "@types/bun": "^1.1.14"
+  }
+}
