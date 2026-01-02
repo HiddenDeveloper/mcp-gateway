@@ -8,32 +8,48 @@
  * - Handle tool discovery
  */
 
-// Tool registry loaded from config
+// Tool registry - loaded on each request (njs doesn't persist global state between requests)
 var toolRegistry = null;
 var routingConfig = null;
+var CONFIG_PATH = '/Users/monyet/develop/home/nginx-mcp-gateway/config/tools.json';
 
 /**
- * Initialize the handler with tool configuration
- * Called once on NGINX startup
+ * Ensure tool registry is loaded
+ * Called automatically before handling requests
  */
-function init(r) {
+function ensureLoaded() {
+    if (toolRegistry !== null) {
+        return true;
+    }
     try {
-        // Load tool configuration from file
-        // UPDATE THIS PATH to match your installation
-        var configPath = '/Users/monyet/develop/home/nginx-mcp-gateway/config/tools.json';
-        var configData = require('fs').readFileSync(configPath);
+        var configData = require('fs').readFileSync(CONFIG_PATH);
         var config = JSON.parse(configData);
-        
+
         toolRegistry = {};
         config.tools.forEach(function(tool) {
             toolRegistry[tool.name] = tool;
         });
-        
+
         routingConfig = config.routing || {};
-        
-        r.return(200, JSON.stringify({ status: 'initialized', tools: Object.keys(toolRegistry).length }));
+        return true;
     } catch (e) {
-        r.return(500, JSON.stringify({ error: 'Failed to initialize: ' + e.message }));
+        return false;
+    }
+}
+
+/**
+ * Initialize the handler with tool configuration
+ * Called via /init endpoint to verify config is valid
+ */
+function init(r) {
+    // Force reload
+    toolRegistry = null;
+    routingConfig = null;
+
+    if (ensureLoaded()) {
+        r.return(200, JSON.stringify({ status: 'initialized', tools: Object.keys(toolRegistry).length }));
+    } else {
+        r.return(500, JSON.stringify({ error: 'Failed to load config from ' + CONFIG_PATH }));
     }
 }
 
@@ -42,6 +58,11 @@ function init(r) {
  * Entry point for all MCP traffic
  */
 function handleMCPRequest(r) {
+    // Ensure config is loaded (njs doesn't persist globals between requests)
+    if (!ensureLoaded()) {
+        return mcpError(r, -32000, 'Failed to load tool configuration', null);
+    }
+
     // Read request body
     var body = r.requestText;
     
@@ -149,11 +170,7 @@ function handleToolCall(r, request) {
     var backendUrl = resolveBackend(tool);
     var endpoint = tool.backend.endpoint;
     var method = tool.backend.method || 'POST';
-    
-    // Store request context for callback
-    r.variables.mcp_request_id = request.id;
-    r.variables.mcp_tool_name = toolName;
-    
+
     // Make subrequest to backend
     var options = {
         method: method,
