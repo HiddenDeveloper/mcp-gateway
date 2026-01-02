@@ -1,0 +1,21 @@
+# Generated files
+config/tools.json
+
+# Logs
+*.log
+logs/
+
+# OS
+.DS_Store
+
+# Editor
+.idea/
+.vscode/
+*.swp
+*.swo
+
+# Node (for Bun)
+node_modules/
+
+# Test artifacts
+coverage/

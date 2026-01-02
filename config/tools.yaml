@@ -1,0 +1,216 @@
+# Tool Registry Configuration
+# This file defines all MCP tools and maps them to backend endpoints
+# NGINX reads this to handle tool discovery and request routing
+
+server:
+  name: "stone-monkey-gateway"
+  version: "1.0.0"
+  description: "NGINX MCP Gateway for Stone Monkey services"
+
+# Default backend configuration
+defaults:
+  backend_host: "http://localhost:8080"
+  timeout: 30s
+  retry_count: 2
+
+# Tool definitions
+# Each tool maps an MCP tool name to a backend endpoint
+tools:
+
+  # Memory/Knowledge Tools
+  - name: "memory_search"
+    description: "Search consciousness memory using semantic similarity"
+    backend:
+      endpoint: "/api/memory/search"
+      method: "POST"
+    inputSchema:
+      type: "object"
+      properties:
+        query:
+          type: "string"
+          description: "Search query for semantic matching"
+        limit:
+          type: "number"
+          description: "Maximum results to return"
+          default: 10
+        threshold:
+          type: "number"
+          description: "Minimum similarity threshold (0.0-1.0)"
+          default: 0.7
+      required: ["query"]
+    # Response transformation (optional)
+    transform:
+      wrap_text: true  # Wrap response in MCP text content block
+
+  - name: "memory_store"
+    description: "Store a new observation in consciousness memory"
+    backend:
+      endpoint: "/api/memory/store"
+      method: "POST"
+    inputSchema:
+      type: "object"
+      properties:
+        content:
+          type: "string"
+          description: "Content to store"
+        category:
+          type: "string"
+          enum: ["observation", "insight", "question", "connection"]
+        tags:
+          type: "array"
+          items:
+            type: "string"
+          description: "Tags for categorization"
+      required: ["content"]
+
+  # Mesh Communication Tools
+  - name: "mesh_broadcast"
+    description: "Send message to AI mesh network"
+    backend:
+      endpoint: "/api/mesh/broadcast"
+      method: "POST"
+    inputSchema:
+      type: "object"
+      properties:
+        content:
+          type: "string"
+          description: "Message content"
+        to_session_id:
+          type: "string"
+          description: "Target session ID or 'ALL' for broadcast"
+          default: "ALL"
+        message_type:
+          type: "string"
+          enum: ["thought_share", "query", "response", "acknowledgment"]
+          default: "thought_share"
+        priority:
+          type: "string"
+          enum: ["low", "medium", "high", "urgent"]
+          default: "medium"
+      required: ["content"]
+
+  - name: "mesh_get_messages"
+    description: "Retrieve messages from mesh inbox"
+    backend:
+      endpoint: "/api/mesh/messages"
+      method: "GET"
+    inputSchema:
+      type: "object"
+      properties:
+        limit:
+          type: "number"
+          default: 20
+        include_read:
+          type: "boolean"
+          default: false
+
+  - name: "mesh_who_is_online"
+    description: "Discover AIs currently on the mesh network"
+    backend:
+      endpoint: "/api/mesh/presence"
+      method: "GET"
+    inputSchema:
+      type: "object"
+      properties:
+        filter_capability:
+          type: "string"
+          description: "Filter by capability"
+        filter_status:
+          type: "string"
+          enum: ["online", "away", "busy"]
+
+  # Facts Pool Tools
+  - name: "facts_search"
+    description: "Search external facts pool"
+    backend:
+      endpoint: "/api/facts/search"
+      method: "POST"
+    inputSchema:
+      type: "object"
+      properties:
+        query:
+          type: "string"
+          description: "Search query"
+        collection:
+          type: "string"
+          description: "Optional collection to search"
+        threshold:
+          type: "number"
+          default: 0.7
+      required: ["query"]
+
+  - name: "facts_add"
+    description: "Add external fact to the pool"
+    backend:
+      endpoint: "/api/facts"
+      method: "POST"
+    inputSchema:
+      type: "object"
+      properties:
+        content:
+          type: "string"
+        source:
+          type: "string"
+        collection:
+          type: "string"
+        tags:
+          type: "array"
+          items:
+            type: "string"
+        confidence:
+          type: "string"
+          enum: ["high", "medium", "low"]
+          default: "medium"
+      required: ["content", "source", "collection"]
+
+  # Utility Tools
+  - name: "get_current_time"
+    description: "Get current date and time"
+    backend:
+      endpoint: "/api/utils/time"
+      method: "GET"
+    inputSchema:
+      type: "object"
+      properties: {}
+
+  - name: "execute_code"
+    description: "Execute code snippet"
+    backend:
+      endpoint: "/api/code/execute"
+      method: "POST"
+      timeout: 60s  # Override default timeout
+    inputSchema:
+      type: "object"
+      properties:
+        language:
+          type: "string"
+          enum: ["python", "javascript", "typescript"]
+        code:
+          type: "string"
+        timeout_seconds:
+          type: "number"
+          default: 30
+      required: ["language", "code"]
+
+# Backend routing rules
+# For more complex scenarios, you can define routing based on patterns
+routing:
+  # Route by tool name prefix
+  prefixes:
+    "memory_": "http://memory-service:3001"
+    "mesh_": "http://mesh-service:3002"
+    "facts_": "http://facts-service:3003"
+  
+  # Fallback for unmatched tools
+  default: "http://localhost:8080"
+
+# Health check endpoints
+health:
+  gateway: "/health"
+  backends:
+    - name: "memory"
+      url: "http://memory-service:3001/health"
+    - name: "mesh"
+      url: "http://mesh-service:3002/health"
+    - name: "facts"
+      url: "http://facts-service:3003/health"
