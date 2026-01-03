@@ -1,5 +1,9 @@
 # Generated files
 config/tools.json
+nginx/conf.d/mcp-gateway.conf
+
+# Environment (contains secrets)
+.env
 
 # Logs
 *.log

@@ -14,7 +14,16 @@ This gateway translates MCP (Model Context Protocol) JSON-RPC to standard REST e
 
 This installs `nginx-full` with njs support via Homebrew's denji/nginx tap.
 
-### 2. Setup the gateway
+### 2. Configure environment (optional)
+
+```bash
+cp .env.example .env
+# Edit .env with your values:
+# - NEO4J_PASSWORD for database access
+# - EMBEDDING_SERVICE_AUTH_TOKEN for semantic search
+```
+
+### 3. Setup the gateway
 
 ```bash
 ./scripts/setup.sh
@@ -23,17 +32,26 @@ This installs `nginx-full` with njs support via Homebrew's denji/nginx tap.
 This:
 - Installs dependencies (yaml parser)
 - Converts `tools.yaml` to `tools.json`
+- Generates `mcp-gateway.conf` from template with your paths
 - Links NGINX config
 
-### 3. Start the backend
+### 4. Start the backend
 
 ```bash
+./scripts/start-backend.sh
+# or manually:
 bun run examples/backend-service.ts
 ```
 
-Backend runs on port 8080 with mock memory/mesh/facts endpoints.
+Backend runs on **port 5001** with real Neo4j integration for memory tools:
+- GET  `/api/nginx-memory/schema`   - Database schema
+- GET  `/api/nginx-memory/status`   - System status
+- GET  `/api/nginx-memory/focus`    - Current consciousness focus
+- POST `/api/nginx-memory/semantic` - Vector semantic search
+- POST `/api/nginx-memory/text`     - Full-text search
+- POST `/api/nginx-memory/cypher`   - Direct Cypher queries
 
-### 4. Start NGINX
+### 5. Start NGINX
 
 ```bash
 nginx
@@ -43,7 +61,7 @@ brew services start nginx-full
 
 Gateway runs on port 3000.
 
-### 5. Initialize & Test
+### 6. Initialize & Test
 
 ```bash
 # Initialize tool registry
@@ -116,22 +134,25 @@ tools:
 
 ```
 nginx-mcp-gateway/
+├── .env.example            # Environment template
 ├── scripts/
 │   ├── install-macos.sh    # Install NGINX + njs
-│   ├── setup.sh            # Setup development environment
+│   ├── setup.sh            # Setup & generate config from template
+│   ├── start-backend.sh    # Start backend with env vars
 │   ├── yaml-to-json.ts     # Convert tools.yaml → tools.json
 │   ├── reload.sh           # Hot-reload configuration
 │   └── test-mcp.sh         # Test suite
 ├── nginx/
 │   ├── conf.d/
-│   │   └── mcp-gateway.conf  # NGINX server block
+│   │   ├── mcp-gateway.conf.template  # Config template (edit this)
+│   │   └── mcp-gateway.conf           # Generated config (don't edit)
 │   └── njs/
 │       └── mcp-handler.js    # MCP protocol translation
 ├── config/
 │   ├── tools.yaml          # Tool definitions (edit this)
 │   └── tools.json          # Generated (don't edit)
 └── examples/
-    └── backend-service.ts  # Example backend
+    └── backend-service.ts  # Backend with Neo4j integration (port 5001)
 ```
 
 ## NGINX Configuration

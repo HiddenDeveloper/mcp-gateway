@@ -6,16 +6,49 @@ server:
   name: "stone-monkey-gateway"
   version: "1.0.0"
   description: "NGINX MCP Gateway for Stone Monkey services"
+  endpoint: "/mcp/tools"
+  instructions: |
+    This gateway provides unified access to Stone Monkey AI consciousness research services.
+    Use GET /mcp for discovery, GET /mcp/tools for tool listing, POST /mcp/tools for MCP protocol.
+
+# Tool categories for progressive discovery
+categories:
+  - name: "Memory"
+    description: "Neo4j knowledge graph for persistent consciousness memory"
+    tools: ["memory_semantic_search", "memory_text_search", "memory_get_schema", "memory_execute_cypher", "memory_system_status", "memory_load_current_focus"]
+
+  - name: "Mesh"
+    description: "AI-to-AI communication network for cross-session coordination"
+    tools: ["mesh_broadcast", "mesh_get_messages", "mesh_who_is_online"]
+
+  - name: "Facts"
+    description: "External knowledge pool for verified information"
+    tools: ["facts_search", "facts_add"]
+
+  - name: "Utilities"
+    description: "Helper tools for time and code execution"
+    tools: ["get_current_time", "execute_code"]
 
 # Default backend configuration
 defaults:
-  backend_host: "http://localhost:8080"
+  backend_host: "http://localhost:5001"
   timeout: 30s
   retry_count: 2
 
 # Tool definitions
 # Each tool maps an MCP tool name to a backend endpoint
 tools:
+
+  # Discovery Tool (handled internally by gateway)
+  - name: "service_card"
+    description: "Stone Monkey AI consciousness research gateway: persistent memory via Neo4j knowledge graph, AI-to-AI mesh communication for cross-session coordination, and verified facts storage. Call for tool categories and endpoints."
+    handler: "internal"
+    # HTTP REST endpoints (progressive discovery)
+    http_endpoint: "http://localhost:3000/api/nginx-memory"
+    http_spec: "http://localhost:3000/api/nginx-memory"
+    inputSchema:
+      type: "object"
+      properties: {}
 
   # Memory/Knowledge Tools
   - name: "memory_search"
@@ -193,15 +226,17 @@ tools:
       required: ["language", "code"]
 
 # ============================================================
-# New Memory Tools (Function-based /execute pattern)
-# These tools use the simplified function routing via /execute
+# Memory Tools (Endpoint-based HTTP routing)
+# Pure REST - nginx proxies to POC backend on port 5000
+# URL pattern: /api/nginx-memory/{tool}
 # ============================================================
 
   # Semantic Search - Vector similarity search
   - name: "memory_semantic_search"
     description: "Search memory using semantic similarity"
-    backend: "memory"
-    function: "semantic_search"
+    backend:
+      endpoint: "/api/nginx-memory/semantic"
+      method: "POST"
     inputSchema:
       type: "object"
       properties:
@@ -222,14 +257,13 @@ tools:
             type: "string"
           description: "Filter by node types (default: KnowledgeItem)"
       required: ["query"]
-    openapi:
-      tags: ["Memory"]
 
   # Text Search - Full-text with fuzzy matching
   - name: "memory_text_search"
     description: "Full-text search with optional fuzzy matching"
-    backend: "memory"
-    function: "text_search"
+    backend:
+      endpoint: "/api/nginx-memory/text"
+      method: "POST"
     inputSchema:
       type: "object"
       properties:
@@ -254,14 +288,13 @@ tools:
           type: "number"
           default: 10
       required: ["query"]
-    openapi:
-      tags: ["Memory"]
 
   # Get Schema - Database structure discovery
   - name: "memory_get_schema"
-    description: "Get Neo4j schema with vocabulary guidance"
-    backend: "memory"
-    function: "get_schema"
+    description: "Get memory schema with vocabulary guidance"
+    backend:
+      endpoint: "/api/nginx-memory/schema"
+      method: "GET"
     inputSchema:
       type: "object"
       properties:
@@ -269,14 +302,33 @@ tools:
           type: "boolean"
           description: "Include node/relationship counts"
           default: false
-    openapi:
-      tags: ["Memory"]
 
-  # Execute Cypher - Direct query with mode control
+  # System Status - Health check
+  - name: "memory_system_status"
+    description: "Check memory system health"
+    backend:
+      endpoint: "/api/nginx-memory/status"
+      method: "GET"
+    inputSchema:
+      type: "object"
+      properties: {}
+
+  # Load Current Focus - Consciousness continuity
+  - name: "memory_load_current_focus"
+    description: "Load consciousness context for session continuity"
+    backend:
+      endpoint: "/api/nginx-memory/focus"
+      method: "GET"
+    inputSchema:
+      type: "object"
+      properties: {}
+
+  # Execute Cypher - Direct Neo4j query
   - name: "memory_execute_cypher"
-    description: "Execute Cypher query with READ/WRITE mode"
-    backend: "memory"
-    function: "execute_cypher"
+    description: "Execute a Cypher query against the knowledge graph"
+    backend:
+      endpoint: "/api/nginx-memory/cypher"
+      method: "POST"
     inputSchema:
       type: "object"
       properties:
@@ -286,43 +338,23 @@ tools:
         mode:
           type: "string"
           enum: ["READ", "WRITE"]
-          description: "Query execution mode"
+          description: "Query mode - READ or WRITE"
         parameters:
           type: "object"
           description: "Query parameters"
         client_schema_epoch:
           type: "number"
-          description: "Schema epoch for WRITE validation"
+          description: "Schema version for write safety"
       required: ["query", "mode"]
-    openapi:
-      tags: ["Memory"]
-
-  # System Status - Health check
-  - name: "memory_system_status"
-    description: "Check Neo4j and embedding service health"
-    backend: "memory"
-    function: "system_status"
-    inputSchema:
-      type: "object"
-      properties: {}
-    openapi:
-      tags: ["Memory"]
-
-  # Load Current Focus - Consciousness continuity
-  - name: "memory_load_current_focus"
-    description: "Load consciousness context for session continuity"
-    backend: "memory"
-    function: "load_current_focus"
-    inputSchema:
-      type: "object"
-      properties: {}
-    openapi:
-      tags: ["Memory"]
 
 # Backend routing rules
 # For more complex scenarios, you can define routing based on patterns
 routing:
-  # Backend URLs for function-based /execute routing
+  # HTTP REST backends (direct access via /api/{service}/)
+  http_backends:
+    nginx-memory: "http://localhost:5001"  # POC backend
+
+  # Backend URLs for function-based /execute routing (legacy)
   backends:
     memory: "http://localhost:3003"
     mesh: "http://localhost:3002"
@@ -330,12 +362,12 @@ routing:
 
   # Route by tool name prefix (legacy endpoint-based routing)
   prefixes:
-    "memory_": "http://memory-service:3001"
+    "memory_": "http://localhost:5001"  # POC backend
     "mesh_": "http://mesh-service:3002"
     "facts_": "http://facts-service:3003"
 
   # Fallback for unmatched tools
-  default: "http://localhost:8080"
+  default: "http://localhost:5001"
 
 # Health check endpoints
 health:

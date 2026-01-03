@@ -2,12 +2,12 @@
 # Generated from template by setup.sh - DO NOT EDIT DIRECTLY
 #
 # Placeholders replaced by setup script:
-#   /Users/monyet/develop/home/nginx-mcp-gateway - Absolute path to nginx-mcp-gateway directory
-#   /opt/homebrew - nginx prefix path (e.g., /opt/homebrew)
-#    - Bearer token for memory backend
+#   {{MCP_GATEWAY_ROOT}} - Absolute path to nginx-mcp-gateway directory
+#   {{NGINX_PREFIX}} - nginx prefix path (e.g., /opt/homebrew)
+#   {{MCP_MEMORY_AUTH_TOKEN}} - Bearer token for memory backend
 
 # Import njs handler
-js_import mcp from /Users/monyet/develop/home/nginx-mcp-gateway/nginx/njs/mcp-handler.js;
+js_import mcp from {{MCP_GATEWAY_ROOT}}/nginx/njs/mcp-handler.js;
 
 # Upstream backends
 # default_backend: Used for legacy endpoint-based routing (/backend/*)
@@ -23,18 +23,18 @@ server {
     server_name mcp-gateway;
 
     # Config path for njs handler
-    set $mcp_config_path "/Users/monyet/develop/home/nginx-mcp-gateway/config/tools.json";
+    set $mcp_config_path "{{MCP_GATEWAY_ROOT}}/config/tools.json";
 
     # Variables for tool call tracking (set by njs)
     set $tool_start_time "";
     set $tool_name "";
 
     # Logging - info level for structured tool call logs
-    access_log /opt/homebrew/var/log/nginx/mcp-access.log;
-    error_log /opt/homebrew/var/log/nginx/mcp-error.log info;
+    access_log {{NGINX_PREFIX}}/var/log/nginx/mcp-access.log;
+    error_log {{NGINX_PREFIX}}/var/log/nginx/mcp-error.log info;
 
     # Static files
-    root /Users/monyet/develop/home/nginx-mcp-gateway/public;
+    root {{MCP_GATEWAY_ROOT}}/public;
 
     # Homepage
     location = / {
@@ -100,7 +100,7 @@ server {
         proxy_pass http://localhost:3003/execute;
         proxy_set_header Content-Type application/json;
         proxy_set_header Host $host;
-        proxy_set_header Authorization "Bearer ";
+        proxy_set_header Authorization "Bearer {{MCP_MEMORY_AUTH_TOKEN}}";
     }
 
     # Mesh backend (port 3002)
