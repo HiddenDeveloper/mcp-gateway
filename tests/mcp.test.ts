@@ -7,6 +7,8 @@
  * 3. HTTP Routing - Route matching and error handling
  * 4. Memory Service - Neo4j knowledge graph operations
  * 5. Mesh Service - AI-to-AI communication
+ * 6. Recall Service - Conversation history search
+ * 7. Orchestrator Service - AI agent orchestration
  */
 
 import { describe, it, expect, beforeAll } from "bun:test";
@@ -520,5 +522,75 @@ describe("Recall Service", () => {
     } else {
       expect(json.text).toBeDefined();
     }
+  });
+});
+
+// =============================================================================
+// Orchestrator Service
+// =============================================================================
+
+describe("Orchestrator Service", () => {
+  it("service_card returns structured operations with sub-domains", async () => {
+    if (skipIfDown()) return;
+
+    const { json } = await callRpc({
+      jsonrpc: "2.0",
+      method: "tools/call",
+      params: { name: "orchestrator_service_card" },
+      id: 40,
+    });
+
+    const serviceCard = JSON.parse(json.result.content[0].text);
+    expect(serviceCard.service).toBe("orchestrator");
+    expect(serviceCard.operations.length).toBeGreaterThan(20);
+
+    // Verify operations from different sub-domains
+    const opIds = serviceCard.operations.map((op: any) => op.operationId);
+
+    // Agents sub-domain
+    expect(opIds).toContain("agents_list");
+    expect(opIds).toContain("agents_get");
+    expect(opIds).toContain("agents_tools_call");
+
+    // Protocols sub-domain
+    expect(opIds).toContain("protocols_execute");
+    expect(opIds).toContain("protocols_list");
+
+    // Chat sub-domain
+    expect(opIds).toContain("chat_route");
+    expect(opIds).toContain("chat_status");
+
+    // Admin sub-domain
+    expect(opIds).toContain("admin_agents_list");
+    expect(opIds).toContain("admin_mcp_list");
+  });
+
+  it("GET /orchestrator/agents/list routes correctly", async () => {
+    if (skipIfDown()) return;
+
+    const res = await fetch(`${BASE_URL}/orchestrator/agents/list`);
+    // May fail if Bridge not running, but route should work
+    expect(res.status).not.toBe(404);
+  });
+
+  it("GET /orchestrator/chat/status routes correctly", async () => {
+    if (skipIfDown()) return;
+
+    const res = await fetch(`${BASE_URL}/orchestrator/chat/status`);
+    expect(res.status).not.toBe(404);
+  });
+
+  it("GET /orchestrator/protocols/list routes correctly", async () => {
+    if (skipIfDown()) return;
+
+    const res = await fetch(`${BASE_URL}/orchestrator/protocols/list`);
+    expect(res.status).not.toBe(404);
+  });
+
+  it("GET /orchestrator/admin/mcp/list routes correctly", async () => {
+    if (skipIfDown()) return;
+
+    const res = await fetch(`${BASE_URL}/orchestrator/admin/mcp/list`);
+    expect(res.status).not.toBe(404);
   });
 });

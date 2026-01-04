@@ -70,13 +70,13 @@ export class Neo4jService {
             }
             let resultRecords;
             if (mode === "WRITE") {
-                resultRecords = await session.writeTransaction(async (tx) => {
+                resultRecords = await session.executeWrite(async (tx) => {
                     const result = await tx.run(query, params);
                     return result.records;
                 });
             }
             else {
-                resultRecords = await session.readTransaction(async (tx) => {
+                resultRecords = await session.executeRead(async (tx) => {
                     const result = await tx.run(query, params);
                     return result.records;
                 });
@@ -123,7 +123,7 @@ export class Neo4jService {
             defaultAccessMode: neo4j.session.WRITE
         });
         try {
-            const result = await session.writeTransaction(async (tx) => {
+            const result = await session.executeWrite(async (tx) => {
                 const res = await tx.run(
                     "MERGE (s:Schema {name: $name}) ON CREATE SET s.epoch = 1 RETURN s.epoch AS epoch",
                     { name: 'active' }
