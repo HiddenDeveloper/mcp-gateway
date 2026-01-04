@@ -276,7 +276,9 @@ describe("Memory Service", () => {
     if (json.error) {
       expect(json.error).toContain("embedding");
     } else {
-      expect(json.results).toBeDefined();
+      // Standalone implementation returns { matches: [...] }
+      expect(json.matches).toBeDefined();
+      expect(Array.isArray(json.matches)).toBe(true);
     }
   });
 });
@@ -485,12 +487,10 @@ describe("Recall Service", () => {
     const res = await fetch(`${BASE_URL}/recall/status`);
     const json = await res.json();
 
-    // May fail if Recall server not running or auth issues
-    if (json.error) {
-      expect(json.error).toContain("Recall");
-    } else {
-      expect(json.text).toContain("Recall System Status");
-    }
+    // Standalone implementation returns structured status
+    expect(json.service).toBe("recall");
+    expect(json.healthy).toBeDefined();
+    expect(json.qdrant).toBeDefined();
   });
 
   it("GET /recall/schema returns collection info", async () => {
@@ -499,11 +499,10 @@ describe("Recall Service", () => {
     const res = await fetch(`${BASE_URL}/recall/schema`);
     const json = await res.json();
 
-    if (json.error) {
-      expect(json.error).toContain("Recall");
-    } else {
-      expect(json.text).toContain("Conversation History Collection Schema");
-    }
+    // Standalone implementation returns structured schema
+    expect(json.collection_name).toBe("conversation-turns");
+    expect(json.vector_size).toBeDefined();
+    expect(json.payload_schema).toBeDefined();
   });
 
   it("POST /recall/semantic accepts search params", async () => {
@@ -516,11 +515,13 @@ describe("Recall Service", () => {
     });
     const json = await res.json();
 
-    // Either returns results or auth error
+    // Either returns results or embedding error
     if (json.error) {
-      expect(json.error).toContain("Recall");
+      expect(json.error).toContain("embedding");
     } else {
-      expect(json.text).toBeDefined();
+      expect(json.query).toBe("test query");
+      expect(json.results).toBeDefined();
+      expect(json.count).toBeDefined();
     }
   });
 });
