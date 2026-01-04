@@ -1,22 +1,29 @@
 /**
- * Agents List (Tier 1)
+ * Agents List
  *
- * List all available agents with their capabilities summary.
+ * List all available agents with capability summaries.
+ * Tier 1 discovery - shows agent overview with tool counts.
  */
 
-import { callBridgeTool, type AgentsListParams } from "./lib/config";
+import { listAgentSummaries } from "./lib/agent-loader";
+import type { AgentsListParams } from "./lib/types";
 
 export default async function (params: Record<string, unknown>) {
   const { mcp_server, limit } = params as AgentsListParams;
 
   try {
-    const result = await callBridgeTool("agents_list", {
-      ...(mcp_server && { mcp_server }),
+    const agents = await listAgentSummaries(mcp_server, limit);
+
+    console.log(`[orchestrator/agents_list] Returning ${agents.length} agents`);
+
+    return {
+      agents,
+      count: agents.length,
+      ...(mcp_server && { filtered_by: mcp_server }),
       ...(limit && { limit }),
-    });
-    return result;
+    };
   } catch (error) {
-    console.error("[orchestrator/agents/list] Error:", error);
+    console.error("[orchestrator/agents_list] Error:", error);
     throw error;
   }
 }
