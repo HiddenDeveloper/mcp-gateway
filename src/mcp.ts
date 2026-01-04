@@ -32,9 +32,9 @@ export function createMCPHandler(config: GatewayConfig) {
   });
 
   // Each service's service_card
-  for (const service of config.services) {
+  for (const [serviceId, service] of Object.entries(config.services)) {
     tools.push({
-      name: `${service.service_card.operationId}_service_card`,
+      name: `${serviceId}_service_card`,
       description: service.service_card.summary,
       inputSchema: { type: "object", properties: {} },
     });
@@ -50,8 +50,8 @@ export function createMCPHandler(config: GatewayConfig) {
       sc.summary || info.description || "MCP Gateway",
       "",
       "Services:",
-      ...config.services.map(
-        (s) => `  - ${s.service_card.operationId}: ${s.service_card.summary}`
+      ...Object.entries(config.services).map(
+        ([id, s]) => `  - ${id}: ${s.service_card.summary}`
       ),
       "",
       "Use MCP tools/list to discover service_card tools.",
@@ -121,12 +121,10 @@ export function createMCPHandler(config: GatewayConfig) {
     }
 
     // Service-specific service_card
-    const service = config.services.find(
-      (s) => `${s.service_card.operationId}_service_card` === toolName
-    );
-
-    if (service) {
-      return handleServiceCard(service, body.id);
+    for (const [serviceId, service] of Object.entries(config.services)) {
+      if (`${serviceId}_service_card` === toolName) {
+        return handleServiceCard(serviceId, service, body.id);
+      }
     }
 
     return jsonRpcError(-32602, `Unknown tool: ${toolName}`, body.id);
@@ -147,9 +145,9 @@ export function createMCPHandler(config: GatewayConfig) {
       "",
     ];
 
-    for (const service of config.services) {
+    for (const [serviceId, service] of Object.entries(config.services)) {
       const serverUrl = service.servers[0]?.url || "unknown";
-      lines.push(`  ${service.service_card.operationId}_service_card`);
+      lines.push(`  ${serviceId}_service_card`);
       lines.push(`    ${service.service_card.summary}`);
       lines.push(`    HTTP: ${serverUrl}`);
       lines.push("");
@@ -163,7 +161,11 @@ export function createMCPHandler(config: GatewayConfig) {
     return mcpTextResponse(id, lines.join("\n"));
   }
 
-  function handleServiceCard(service: ServiceConfig, id: number | string): Response {
+  function handleServiceCard(
+    serviceId: string,
+    service: ServiceConfig,
+    id: number | string
+  ): Response {
     const sc = service.service_card;
     const serverUrl = service.servers[0]?.url || "unknown";
     const paths = service.paths || {};
@@ -236,7 +238,7 @@ export function createMCPHandler(config: GatewayConfig) {
 
     // Return structured response
     const response = {
-      service: sc.operationId,
+      service: serviceId,
       summary: sc.summary,
       description: sc.description,
       baseUrl: serverUrl,

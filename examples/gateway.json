@@ -1,91 +1,24 @@
 {
   "gateway": {
     "info": {
-      "title": "stone-monkey-gateway",
+      "title": "my-gateway",
       "version": "1.0.0",
-      "description": "Unified access to Stone Monkey AI services"
+      "description": "Example MCP Gateway configuration"
     },
     "service_card": {
-      "operationId": "gateway",
-      "summary": "Unified access to Stone Monkey AI services"
+      "summary": "Example gateway with memory and mesh services"
     }
   },
-  "services": [
-    {
+  "services": {
+    "memory": {
       "servers": [
-        { "url": "http://localhost:5001/api/memory" }
+        { "url": "http://localhost:3000/memory" }
       ],
       "service_card": {
-        "operationId": "memory",
         "summary": "Neo4j knowledge graph for persistent memory",
         "description": "Supports semantic search, text search, and direct Cypher queries."
       },
       "paths": {
-        "/semantic": {
-          "post": {
-            "operationId": "semantic_search",
-            "summary": "Search memory using vector similarity",
-            "requestBody": {
-              "required": true,
-              "content": {
-                "application/json": {
-                  "schema": {
-                    "type": "object",
-                    "properties": {
-                      "query": {
-                        "type": "string",
-                        "description": "Search query for semantic matching"
-                      },
-                      "limit": {
-                        "type": "integer",
-                        "description": "Maximum results to return",
-                        "default": 10
-                      },
-                      "threshold": {
-                        "type": "number",
-                        "description": "Minimum similarity threshold (0.0-1.0)",
-                        "default": 0.7
-                      }
-                    },
-                    "required": ["query"]
-                  }
-                }
-              }
-            }
-          }
-        },
-        "/text": {
-          "post": {
-            "operationId": "text_search",
-            "summary": "Full-text search with optional fuzzy matching",
-            "requestBody": {
-              "required": true,
-              "content": {
-                "application/json": {
-                  "schema": {
-                    "type": "object",
-                    "properties": {
-                      "query": {
-                        "type": "string",
-                        "description": "Text to search for"
-                      },
-                      "fuzzy": {
-                        "type": "boolean",
-                        "description": "Enable fuzzy matching",
-                        "default": false
-                      },
-                      "limit": {
-                        "type": "integer",
-                        "default": 10
-                      }
-                    },
-                    "required": ["query"]
-                  }
-                }
-              }
-            }
-          }
-        },
         "/schema": {
           "get": {
             "operationId": "get_schema",
@@ -104,10 +37,10 @@
             ]
           }
         },
-        "/cypher": {
+        "/semantic": {
           "post": {
-            "operationId": "execute_cypher",
-            "summary": "Execute a Cypher query against the knowledge graph",
+            "operationId": "semantic_search",
+            "summary": "Search memory using vector similarity",
             "requestBody": {
               "required": true,
               "content": {
@@ -117,19 +50,14 @@
                     "properties": {
                       "query": {
                         "type": "string",
-                        "description": "Cypher query to execute"
+                        "description": "Search query"
                       },
-                      "mode": {
-                        "type": "string",
-                        "enum": ["READ", "WRITE"],
-                        "description": "Query mode"
-                      },
-                      "parameters": {
-                        "type": "object",
-                        "description": "Query parameters"
+                      "limit": {
+                        "type": "integer",
+                        "default": 10
                       }
                     },
-                    "required": ["query", "mode"]
+                    "required": ["query"]
                   }
                 }
               }
@@ -138,19 +66,18 @@
         }
       }
     },
-    {
+    "mesh": {
       "servers": [
-        { "url": "http://localhost:3002/api/mesh" }
+        { "url": "http://localhost:3000/mesh" }
       ],
       "service_card": {
-        "operationId": "mesh",
-        "summary": "AI-to-AI communication network for cross-session coordination"
+        "summary": "AI-to-AI communication network"
       },
       "paths": {
         "/broadcast": {
           "post": {
             "operationId": "broadcast",
-            "summary": "Send message to AI mesh network",
+            "summary": "Send message to mesh network",
             "requestBody": {
               "required": true,
               "content": {
@@ -164,7 +91,6 @@
                       },
                       "to": {
                         "type": "string",
-                        "description": "Target session ID or 'ALL'",
                         "default": "ALL"
                       }
                     },
@@ -178,30 +104,10 @@
         "/messages": {
           "get": {
             "operationId": "get_messages",
-            "summary": "Retrieve messages from mesh inbox",
-            "parameters": [
-              {
-                "name": "limit",
-                "in": "query",
-                "required": false,
-                "schema": {
-                  "type": "integer",
-                  "default": 20
-                }
-              },
-              {
-                "name": "include_read",
-                "in": "query",
-                "required": false,
-                "schema": {
-                  "type": "boolean",
-                  "default": false
-                }
-              }
-            ]
+            "summary": "Retrieve messages from inbox"
           }
         }
       }
     }
-  ]
+  }
 }

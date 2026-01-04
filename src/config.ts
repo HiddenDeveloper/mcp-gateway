@@ -8,7 +8,6 @@ export interface ServerConfig {
 }
 
 export interface ServiceCard {
-  operationId: string;
   summary: string;
   description?: string;
 }
@@ -74,7 +73,7 @@ export interface GatewayConfig {
     info: GatewayInfo;
     service_card: ServiceCard;
   };
-  services: ServiceConfig[];
+  services: Record<string, ServiceConfig>;
 }
 
 export async function loadConfig(path: string): Promise<GatewayConfig> {
@@ -92,11 +91,11 @@ export async function loadConfig(path: string): Promise<GatewayConfig> {
   if (!config.gateway?.info?.title) {
     throw new Error("Missing gateway.info.title in config");
   }
-  if (!config.gateway?.service_card?.operationId) {
-    throw new Error("Missing gateway.service_card.operationId in config");
+  if (!config.gateway?.service_card?.summary) {
+    throw new Error("Missing gateway.service_card.summary in config");
   }
-  if (!Array.isArray(config.services)) {
-    throw new Error("Missing services array in config");
+  if (!config.services || typeof config.services !== "object") {
+    throw new Error("Missing services object in config");
   }
 
   return config;

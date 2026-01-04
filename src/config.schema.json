@@ -15,17 +15,17 @@
           "$ref": "#/$defs/info"
         },
         "service_card": {
-          "$ref": "#/$defs/serviceCard"
+          "$ref": "#/$defs/gatewayServiceCard"
         }
       }
     },
     "services": {
-      "type": "array",
-      "description": "Backend services exposed through the gateway",
-      "items": {
+      "type": "object",
+      "description": "Backend services keyed by service ID",
+      "additionalProperties": {
         "$ref": "#/$defs/service"
       },
-      "minItems": 1
+      "minProperties": 1
     }
   },
   "$defs": {
@@ -65,16 +65,26 @@
         }
       }
     },
+    "gatewayServiceCard": {
+      "type": "object",
+      "description": "Gateway service card - exposed as MCP tool",
+      "required": ["summary"],
+      "properties": {
+        "summary": {
+          "type": "string",
+          "description": "Short description (used as MCP tool description)"
+        },
+        "description": {
+          "type": "string",
+          "description": "Detailed description"
+        }
+      }
+    },
     "serviceCard": {
       "type": "object",
       "description": "Service discovery endpoint - exposed as MCP tool",
-      "required": ["operationId", "summary"],
+      "required": ["summary"],
       "properties": {
-        "operationId": {
-          "type": "string",
-          "description": "Unique identifier for MCP tool name",
-          "pattern": "^[a-z][a-z0-9_]*$"
-        },
         "summary": {
           "type": "string",
           "description": "Short description (used as MCP tool description)"

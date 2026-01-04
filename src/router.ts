@@ -1,28 +1,28 @@
 /**
  * HTTP Router
  *
- * Routes incoming HTTP requests to user-defined functions.
- * Functions are loaded from the functions/ directory.
+ * Routes incoming HTTP requests to user-defined services.
+ * Services are loaded from the services/ directory.
  */
 
 import type { GatewayConfig, OperationConfig, ServiceConfig } from "./config";
-import { loadFunction, type FunctionHandler } from "./loader";
+import { loadFunction, type ServiceHandler } from "./loader";
 
 interface Route {
   method: string;
   fullPattern: RegExp;
   pathParams: string[];
+  serviceId: string;
   service: ServiceConfig;
   operation: OperationConfig;
-  handler: FunctionHandler;
+  handler: ServiceHandler;
 }
 
 export async function createRouter(config: GatewayConfig) {
   const routes: Route[] = [];
 
   // Build routes from config
-  for (const service of config.services) {
-    const serviceId = service.service_card.operationId;
+  for (const [serviceId, service] of Object.entries(config.services)) {
     const paths = service.paths || {};
 
     for (const [path, pathItem] of Object.entries(paths)) {
@@ -32,7 +32,7 @@ export async function createRouter(config: GatewayConfig) {
         const operation = pathItem[method];
         if (!operation) continue;
 
-        // Load the function handler
+        // Load the service handler
         const handler = await loadFunction(serviceId, operation.operationId);
 
         // Convert path to regex (handle path params like /users/{id})
@@ -45,6 +45,7 @@ export async function createRouter(config: GatewayConfig) {
           method: method.toUpperCase(),
           fullPattern,
           pathParams: params,
+          serviceId,
           service,
           operation,
           handler,

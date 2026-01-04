@@ -43,26 +43,27 @@ describe("Config Schema Validation", () => {
     expect(config.gateway.info.title).toBeString();
     expect(config.gateway.info.version).toBeString();
     expect(config.gateway.service_card).toBeDefined();
-    expect(config.gateway.service_card.operationId).toBeString();
     expect(config.gateway.service_card.summary).toBeString();
 
-    // Services level
-    expect(config.services).toBeArray();
-    expect(config.services.length).toBeGreaterThan(0);
+    // Services level - now an object keyed by service ID
+    expect(config.services).toBeObject();
+    expect(Object.keys(config.services).length).toBeGreaterThan(0);
 
     // Each service has servers, service_card, and paths
-    for (const service of config.services) {
-      expect(service.servers).toBeArray();
-      expect(service.servers.length).toBeGreaterThan(0);
-      expect(service.servers[0].url).toBeString();
+    for (const [serviceId, service] of Object.entries(config.services)) {
+      const svc = service as Record<string, any>;
+      expect(serviceId).toBeString();
 
-      expect(service.service_card).toBeDefined();
-      expect(service.service_card.operationId).toBeString();
-      expect(service.service_card.summary).toBeString();
+      expect(svc.servers).toBeArray();
+      expect(svc.servers.length).toBeGreaterThan(0);
+      expect(svc.servers[0].url).toBeString();
+
+      expect(svc.service_card).toBeDefined();
+      expect(svc.service_card.summary).toBeString();
 
       // Paths are OpenAPI-compatible
-      if (service.paths) {
-        for (const [path, pathItem] of Object.entries(service.paths)) {
+      if (svc.paths) {
+        for (const [path, pathItem] of Object.entries(svc.paths)) {
           expect(path).toStartWith("/");
           const item = pathItem as Record<string, any>;
 
@@ -88,7 +89,7 @@ describe("Config Schema Validation", () => {
       gateway: {
         // missing info and service_card
       },
-      services: []
+      services: {}
     };
 
     const valid = validate(invalidConfig);
@@ -103,19 +104,17 @@ describe("Config Schema Validation", () => {
           version: "1.0.0"
         },
         service_card: {
-          operationId: "gateway",
           summary: "test"
         }
       },
-      services: [
-        {
+      services: {
+        memory: {
           // missing servers
           service_card: {
-            operationId: "memory",
             summary: "test"
           }
         }
-      ]
+      }
     };
 
     const valid = validate(invalidConfig);
