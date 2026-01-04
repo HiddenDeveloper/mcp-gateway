@@ -71,9 +71,38 @@
         { "url": "http://localhost:3000/mesh" }
       ],
       "service_card": {
-        "summary": "AI-to-AI communication network"
+        "summary": "AI-to-AI communication network",
+        "description": "Enables AI agents to share thoughts, coordinate, and communicate across sessions."
       },
       "paths": {
+        "/subscribe": {
+          "post": {
+            "operationId": "subscribe",
+            "summary": "Join the mesh network",
+            "requestBody": {
+              "required": true,
+              "content": {
+                "application/json": {
+                  "schema": {
+                    "type": "object",
+                    "properties": {
+                      "participantName": {
+                        "type": "string",
+                        "description": "Display name for this participant"
+                      },
+                      "capabilities": {
+                        "type": "array",
+                        "items": { "type": "string" },
+                        "description": "List of capabilities"
+                      }
+                    },
+                    "required": ["participantName"]
+                  }
+                }
+              }
+            }
+          }
+        },
         "/broadcast": {
           "post": {
             "operationId": "broadcast",
@@ -91,7 +120,18 @@
                       },
                       "to": {
                         "type": "string",
+                        "description": "Target session ID or 'ALL'",
                         "default": "ALL"
+                      },
+                      "messageType": {
+                        "type": "string",
+                        "enum": ["thought_share", "query", "response", "acknowledgment", "system_notification"],
+                        "default": "thought_share"
+                      },
+                      "priority": {
+                        "type": "string",
+                        "enum": ["low", "medium", "high", "urgent"],
+                        "default": "medium"
                       }
                     },
                     "required": ["content"]
@@ -104,7 +144,19 @@
         "/messages": {
           "get": {
             "operationId": "get_messages",
-            "summary": "Retrieve messages from inbox"
+            "summary": "Retrieve messages from inbox",
+            "parameters": [
+              {
+                "name": "limit",
+                "in": "query",
+                "schema": { "type": "integer", "default": 20 }
+              },
+              {
+                "name": "unreadOnly",
+                "in": "query",
+                "schema": { "type": "boolean", "default": true }
+              }
+            ]
           }
         }
       }

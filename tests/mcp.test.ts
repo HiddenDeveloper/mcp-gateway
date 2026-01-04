@@ -284,7 +284,7 @@ describe("Memory Service", () => {
 // =============================================================================
 
 describe("Mesh Service", () => {
-  it("service_card returns structured operations", async () => {
+  it("service_card returns all mesh operations", async () => {
     if (skipIfDown()) return;
 
     const { json } = await callRpc({
@@ -296,50 +296,156 @@ describe("Mesh Service", () => {
 
     const serviceCard = JSON.parse(json.result.content[0].text);
     expect(serviceCard.service).toBe("mesh");
-    expect(serviceCard.operations.length).toBe(2);
+    expect(serviceCard.operations.length).toBe(7);
 
-    // Verify broadcast operation with parameters
+    // Verify all operations present
+    const opIds = serviceCard.operations.map((op: any) => op.operationId);
+    expect(opIds).toContain("subscribe");
+    expect(opIds).toContain("leave");
+    expect(opIds).toContain("who_is_online");
+    expect(opIds).toContain("broadcast");
+    expect(opIds).toContain("get_messages");
+    expect(opIds).toContain("mark_read");
+    expect(opIds).toContain("get_thread");
+  });
+
+  it("broadcast operation has full parameter schema", async () => {
+    if (skipIfDown()) return;
+
+    const { json } = await callRpc({
+      jsonrpc: "2.0",
+      method: "tools/call",
+      params: { name: "mesh_service_card" },
+      id: 21,
+    });
+
+    const serviceCard = JSON.parse(json.result.content[0].text);
     const broadcast = serviceCard.operations.find(
       (op: any) => op.operationId === "broadcast"
     );
     expect(broadcast).toBeDefined();
     expect(broadcast.method).toBe("POST");
-    expect(
-      broadcast.parameters.find((p: any) => p.name === "content").required
-    ).toBe(true);
 
-    // Verify get_messages operation
-    const getMessages = serviceCard.operations.find(
-      (op: any) => op.operationId === "get_messages"
-    );
-    expect(getMessages).toBeDefined();
-    expect(getMessages.method).toBe("GET");
+    // Verify parameters include new fields
+    const paramNames = broadcast.parameters.map((p: any) => p.name);
+    expect(paramNames).toContain("content");
+    expect(paramNames).toContain("to");
+    expect(paramNames).toContain("messageType");
+    expect(paramNames).toContain("priority");
+    expect(paramNames).toContain("requiresResponse");
   });
 
-  it("POST /mesh/broadcast sends message", async () => {
+  it("POST /mesh/subscribe creates session", async () => {
+    if (skipIfDown()) return;
+
+    const res = await fetch(`${BASE_URL}/mesh/subscribe`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        participantName: "TestAgent",
+        capabilities: ["testing"],
+      }),
+    });
+    const json = await res.json();
+
+    expect(json.success).toBe(true);
+    expect(json.session.sessionId).toBeDefined();
+    expect(json.session.participantName).toBe("TestAgent");
+    expect(json.session.capabilities).toContain("testing");
+    expect(json.session.status).toBe("active");
+  });
+
+  it("GET /mesh/who_is_online returns participants", async () => {
+    if (skipIfDown()) return;
+
+    const res = await fetch(`${BASE_URL}/mesh/who_is_online`);
+    const json = await res.json();
+
+    expect(json.participants).toBeInstanceOf(Array);
+    expect(json.count).toBeGreaterThanOrEqual(0);
+    expect(json.timestamp).toBeDefined();
+  });
+
+  it("POST /mesh/broadcast sends message with full features", async () => {
     if (skipIfDown()) return;
 
     const res = await fetch(`${BASE_URL}/mesh/broadcast`, {
       method: "POST",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ content: "Test message from bun test", to: "ALL" }),
+      body: JSON.stringify({
+        content: "Test message from bun test",
+        to: "ALL",
+        messageType: "thought_share",
+        priority: "high",
+        requiresResponse: true,
+      }),
     });
     const json = await res.json();
 
     expect(json.success).toBe(true);
     expect(json.message.id).toBeDefined();
-    expect(json.message.from).toBeDefined();
-    expect(json.message.to).toBe("ALL");
+    expect(json.message.fromSession).toBeDefined();
+    expect(json.message.toSession).toBe("ALL");
+    expect(json.message.messageType).toBe("thought_share");
+    expect(json.message.priority).toBe("high");
+    expect(json.message.requiresResponse).toBe(true);
   });
 
-  it("GET /mesh/messages retrieves inbox", async () => {
+  it("GET /mesh/messages retrieves inbox with filters", async () => {
     if (skipIfDown()) return;
 
-    const res = await fetch(`${BASE_URL}/mesh/messages?include_read=true`);
+    const res = await fetch(`${BASE_URL}/mesh/messages?unreadOnly=false&limit=10`);
     const json = await res.json();
 
     expect(json.sessionId).toBeDefined();
+    expect(json.participantName).toBeDefined();
     expect(json.messages).toBeInstanceOf(Array);
     expect(json.count).toBeGreaterThanOrEqual(0);
+  });
+
+  it("POST /mesh/mark_read marks message as read", async () => {
+    if (skipIfDown()) return;
+
+    // First broadcast a message to get an ID
+    const broadcastRes = await fetch(`${BASE_URL}/mesh/broadcast`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ content: "Message to mark as read" }),
+    });
+    const broadcastJson = await broadcastRes.json();
+    const messageId = broadcastJson.message.id;
+
+    // Mark it as read
+    const res = await fetch(`${BASE_URL}/mesh/mark_read`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ messageId }),
+    });
+    const json = await res.json();
+
+    expect(json.messageId).toBe(messageId);
+    expect(json.sessionId).toBeDefined();
+  });
+
+  it("GET /mesh/thread/{messageId} retrieves thread", async () => {
+    if (skipIfDown()) return;
+
+    // First create a message
+    const broadcastRes = await fetch(`${BASE_URL}/mesh/broadcast`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ content: "Root message for thread" }),
+    });
+    const broadcastJson = await broadcastRes.json();
+    const messageId = broadcastJson.message.id;
+
+    // Get the thread
+    const res = await fetch(`${BASE_URL}/mesh/thread/${messageId}`);
+    const json = await res.json();
+
+    expect(json.success).toBe(true);
+    expect(json.threadId).toBe(messageId);
+    expect(json.messages).toBeInstanceOf(Array);
+    expect(json.messages.length).toBeGreaterThanOrEqual(1);
   });
 });

@@ -3,73 +3,89 @@
  *
  * Retrieve messages from the mesh inbox.
  * Returns messages addressed to this session or to ALL.
+ * Supports filtering by message type, priority, and read status.
  */
 
-import { config, loadMessages, saveMessages } from "./lib/config";
-import type { MeshMessage } from "./lib/config";
+import {
+  config,
+  queryMessages,
+  markAsRead,
+  getOrCreateSession,
+} from "./lib/config";
+import type { MessageType, PriorityLevel } from "./lib/config";
 
 interface Params {
   limit?: number;
-  include_read?: boolean;
+  unreadOnly?: boolean;
+  messageType?: MessageType;
+  priority?: PriorityLevel;
+  autoMarkRead?: boolean;
+  participantName?: string;
 }
 
-export default async function(params: Record<string, unknown>) {
-  const { limit = 20, include_read = false } = params as Params;
+export default async function (params: Record<string, unknown>) {
+  const {
+    limit = 20,
+    unreadOnly = true,
+    messageType,
+    priority,
+    autoMarkRead = true,
+    participantName,
+  } = params as Params;
 
   try {
-    const allMessages = await loadMessages();
-
-    // Filter messages for this session (addressed to us or to ALL)
-    let relevantMessages = allMessages.filter(
-      (msg) =>
-        msg.to === "ALL" ||
-        msg.to === config.sessionId ||
-        msg.from === config.sessionId // Include our own messages
+    // Ensure session exists
+    const session = await getOrCreateSession(
+      participantName || config.participantName
     );
 
-    // Filter by read status if needed
-    if (!include_read) {
-      relevantMessages = relevantMessages.filter((msg) => !msg.read);
-    }
+    // Query messages for this session
+    const messages = await queryMessages({
+      toSession: session.sessionId,
+      unreadOnly,
+      sessionId: session.sessionId,
+      messageType,
+      priority,
+      limit,
+    });
 
-    // Sort by timestamp descending (newest first)
-    relevantMessages.sort(
-      (a, b) => new Date(b.timestamp).getTime() - new Date(a.timestamp).getTime()
-    );
-
-    // Apply limit
-    const limitedMessages = relevantMessages.slice(0, limit);
-
-    // Mark retrieved messages as read
-    const messageIds = new Set(limitedMessages.map((m) => m.id));
-    let updated = false;
-
-    for (const msg of allMessages) {
-      if (messageIds.has(msg.id) && !msg.read) {
-        msg.read = true;
-        updated = true;
+    // Auto-mark messages as read if requested
+    if (autoMarkRead) {
+      for (const msg of messages) {
+        if (!msg.readBy.includes(session.sessionId)) {
+          await markAsRead(msg.id, session.sessionId);
+        }
       }
     }
 
-    if (updated) {
-      await saveMessages(allMessages);
-    }
-
     // Format response
-    const formattedMessages = limitedMessages.map((msg) => ({
+    const formattedMessages = messages.map((msg) => ({
       id: msg.id,
-      from: msg.from,
-      to: msg.to,
+      fromSession: msg.fromSession,
+      toSession: msg.toSession,
+      messageType: msg.messageType,
       content: msg.content,
+      context: msg.context,
+      priority: msg.priority,
       timestamp: msg.timestamp,
-      isOwn: msg.from === config.sessionId,
+      requiresResponse: msg.requiresResponse,
+      participantName: msg.participantName,
+      originalMessageId: msg.originalMessageId,
+      isOwn: msg.fromSession === session.sessionId,
+      isRead: msg.readBy.includes(session.sessionId),
     }));
 
+    // Count unread (before we marked them)
+    const unreadCount = messages.filter(
+      (m) => !m.readBy.includes(session.sessionId)
+    ).length;
+
     return {
-      sessionId: config.sessionId,
+      sessionId: session.sessionId,
+      participantName: session.participantName,
       messages: formattedMessages,
       count: formattedMessages.length,
-      hasMore: relevantMessages.length > limit,
+      unreadCount: autoMarkRead ? 0 : unreadCount,
     };
   } catch (error) {
     console.error("[get_messages] Error:", error);
