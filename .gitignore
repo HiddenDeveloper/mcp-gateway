@@ -1,6 +1,9 @@
 # Runtime config (users create their own)
 config/
 
+# Runtime data
+data/
+
 # Environment (contains secrets)
 .env
 
