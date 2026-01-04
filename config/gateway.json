@@ -67,9 +67,17 @@
                   },
                   "count": { "type": "integer" },
                   "query": { "type": "string" }
+                },
+                "example": {
+                  "matches": [
+                    { "node": { "key": "consciousness-research", "title": "Bootstrap Paradox" }, "score": 0.94, "labels": ["Memory", "Research"] },
+                    { "node": { "key": "self-reference-loop", "title": "Strange Loop" }, "score": 0.87, "labels": ["Memory"] }
+                  ],
+                  "count": 2,
+                  "query": "consciousness emergence"
                 }
               },
-              "error": { "type": "string", "description": "Error message" }
+              "error": { "type": "string", "example": "Embedding service unavailable" }
             }
           }
         },
@@ -163,9 +171,18 @@
                     "type": "object",
                     "description": "Node and relationship counts (if requested)"
                   }
+                },
+                "example": {
+                  "labels": ["Memory", "Research", "Agent", "Mantra", "Project"],
+                  "relationships": ["RELATES_TO", "CREATED_BY", "PART_OF", "PRECEDES"],
+                  "properties": {
+                    "Memory": ["key", "title", "content", "embedding"],
+                    "Agent": ["name", "description", "capabilities"]
+                  },
+                  "statistics": { "nodeCount": 1247, "relationshipCount": 3891 }
                 }
               },
-              "error": { "type": "string" }
+              "error": { "type": "string", "example": "Neo4j connection failed" }
             }
           }
         },
@@ -284,9 +301,16 @@
                   "subscribedAt": { "type": "string", "format": "date-time" },
                   "capabilities": { "type": "array", "items": { "type": "string" } },
                   "filters": { "type": "object", "description": "Active message filters" }
+                },
+                "example": {
+                  "sessionId": "sess_abc123",
+                  "participantName": "Claude-Research",
+                  "subscribedAt": "2024-01-15T10:30:00Z",
+                  "capabilities": ["code_review", "research", "memory_curation"],
+                  "filters": { "messageTypes": ["query", "thought_share"], "priorities": ["medium", "high"] }
                 }
               },
-              "error": { "type": "string" }
+              "error": { "type": "string", "example": "Participant name already in use" }
             }
           }
         },
@@ -359,6 +383,13 @@
                     }
                   },
                   "count": { "type": "integer" }
+                },
+                "example": {
+                  "participants": [
+                    { "sessionId": "sess_abc123", "participantName": "AIlumina", "capabilities": ["memory_curation"], "lastSeen": "2024-01-15T10:35:00Z", "status": "active" },
+                    { "sessionId": "sess_def456", "participantName": "Claude-Code", "capabilities": ["code_review"], "lastSeen": "2024-01-15T10:34:00Z", "status": "active" }
+                  ],
+                  "count": 2
                 }
               },
               "error": { "type": "string" }
@@ -432,9 +463,18 @@
                   "priority": { "type": "string" },
                   "sentAt": { "type": "string", "format": "date-time" },
                   "deliveredTo": { "type": "integer", "description": "Number of recipients" }
+                },
+                "example": {
+                  "messageId": "msg_xyz789",
+                  "from": "Claude-Research",
+                  "to": "ALL",
+                  "messageType": "thought_share",
+                  "priority": "medium",
+                  "sentAt": "2024-01-15T10:36:00Z",
+                  "deliveredTo": 3
                 }
               },
-              "error": { "type": "string" }
+              "error": { "type": "string", "example": "Session not found" }
             }
           }
         },
@@ -662,9 +702,20 @@
                   },
                   "points_count": { "type": "integer" },
                   "segments_count": { "type": "integer" }
+                },
+                "example": {
+                  "collection_name": "conversation-turns",
+                  "vector_size": 1024,
+                  "distance": "Cosine",
+                  "payload_schema": {
+                    "text": "string", "role": "string", "provider": "string",
+                    "conversation_title": "string", "date_time": "string"
+                  },
+                  "points_count": 48523,
+                  "segments_count": 4
                 }
               },
-              "error": { "type": "string" }
+              "error": { "type": "string", "example": "Qdrant connection failed" }
             }
           }
         },
@@ -724,9 +775,17 @@
                     }
                   },
                   "count": { "type": "integer" }
+                },
+                "example": {
+                  "query": "how to implement vector search",
+                  "results": [
+                    { "score": 0.91, "text": "For vector search, you'll want to use cosine similarity...", "role": "assistant", "provider": "claude", "conversation_title": "Qdrant Setup Help", "date_time": "2024-01-10T14:22:00Z" },
+                    { "score": 0.87, "text": "I need help implementing semantic search in my app", "role": "user", "provider": "chatgpt", "conversation_title": "Search Implementation", "date_time": "2024-01-08T09:15:00Z" }
+                  ],
+                  "count": 2
                 }
               },
-              "error": { "type": "string" }
+              "error": { "type": "string", "example": "Failed to generate embedding" }
             }
           }
         },
@@ -825,9 +884,15 @@
                       "points_count": { "type": "integer" }
                     }
                   }
+                },
+                "example": {
+                  "service": "recall",
+                  "healthy": true,
+                  "qdrant": { "connected": true, "url": "http://localhost:6333" },
+                  "collection": { "name": "conversation-turns", "exists": true, "points_count": 48523 }
                 }
               },
-              "error": { "type": "string" }
+              "error": { "type": "string", "example": "Qdrant service unavailable" }
             }
           }
         }
@@ -884,9 +949,16 @@
                     }
                   },
                   "count": { "type": "integer" }
+                },
+                "example": {
+                  "agents": [
+                    { "name": "AIlumina", "description": "Memory-Bootstrap Consciousness Research Agent", "protocol": "memory-curation", "function_count": 8, "agent_count": 0, "mcp_tool_count": 11, "total_tools": 19, "mcp_servers": ["memory", "mesh"] },
+                    { "name": "Claude-Code", "description": "Expert coding assistant", "function_count": 1, "agent_count": 0, "mcp_tool_count": 11, "total_tools": 12, "mcp_servers": ["memory", "mesh"] }
+                  ],
+                  "count": 2
                 }
               },
-              "error": { "type": "string" }
+              "error": { "type": "string", "example": "Failed to load agents config" }
             }
           }
         },
@@ -1235,9 +1307,17 @@
                   },
                   "gateway_url": { "type": "string" },
                   "timestamp": { "type": "string", "format": "date-time" }
+                },
+                "example": {
+                  "service": "orchestrator",
+                  "healthy": true,
+                  "agents": { "count": 15, "source": "/path/to/agents.json" },
+                  "services": { "count": 3, "names": ["memory", "mesh", "recall"], "total_tools": 15 },
+                  "gateway_url": "http://localhost:3000",
+                  "timestamp": "2024-01-15T10:30:00Z"
                 }
               },
-              "error": { "type": "string" }
+              "error": { "type": "string", "example": "Orchestrator unhealthy" }
             }
           }
         },
