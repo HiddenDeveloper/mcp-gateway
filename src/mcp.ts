@@ -184,6 +184,10 @@ export function createMCPHandler(config: GatewayConfig) {
         default?: unknown;
         description?: string;
       }>;
+      responses?: {
+        success?: Record<string, unknown>;
+        error?: Record<string, unknown>;
+      };
     }> = [];
 
     for (const path of Object.keys(paths)) {
@@ -231,6 +235,7 @@ export function createMCPHandler(config: GatewayConfig) {
             operationId: operation.operationId,
             summary: operation.summary,
             ...(params.length > 0 && { parameters: params }),
+            ...(operation.responses && { responses: operation.responses }),
           });
         }
       }

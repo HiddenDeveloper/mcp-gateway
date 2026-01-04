@@ -1,0 +1,1602 @@
+{
+  "gateway": {
+    "info": {
+      "title": "stone-monkey-gateway",
+      "version": "1.0.0",
+      "description": "Unified access to Stone Monkey AI services"
+    },
+    "service_card": {
+      "summary": "Unified access to Stone Monkey AI services"
+    }
+  },
+  "services": {
+    "memory": {
+      "servers": [
+        { "url": "http://localhost:3000/memory" }
+      ],
+      "service_card": {
+        "summary": "Neo4j knowledge graph for persistent memory",
+        "description": "Supports semantic search, text search, and direct Cypher queries."
+      },
+      "paths": {
+        "/semantic": {
+          "post": {
+            "operationId": "semantic_search",
+            "summary": "Search memory using vector similarity",
+            "requestBody": {
+              "required": true,
+              "content": {
+                "application/json": {
+                  "schema": {
+                    "type": "object",
+                    "properties": {
+                      "query": {
+                        "type": "string",
+                        "description": "Search query for semantic matching"
+                      },
+                      "limit": {
+                        "type": "integer",
+                        "description": "Maximum results to return",
+                        "default": 10
+                      },
+                      "threshold": {
+                        "type": "number",
+                        "description": "Minimum similarity threshold (0.0-1.0)",
+                        "default": 0.7
+                      }
+                    },
+                    "required": ["query"]
+                  }
+                }
+              }
+            },
+            "responses": {
+              "success": {
+                "type": "object",
+                "properties": {
+                  "matches": {
+                    "type": "array",
+                    "items": {
+                      "type": "object",
+                      "properties": {
+                        "node": { "type": "object", "description": "Neo4j node properties" },
+                        "score": { "type": "number", "description": "Similarity score 0.0-1.0" },
+                        "labels": { "type": "array", "items": { "type": "string" } }
+                      }
+                    }
+                  },
+                  "count": { "type": "integer" },
+                  "query": { "type": "string" }
+                }
+              },
+              "error": { "type": "string", "description": "Error message" }
+            }
+          }
+        },
+        "/text": {
+          "post": {
+            "operationId": "text_search",
+            "summary": "Full-text search with optional fuzzy matching",
+            "requestBody": {
+              "required": true,
+              "content": {
+                "application/json": {
+                  "schema": {
+                    "type": "object",
+                    "properties": {
+                      "query": {
+                        "type": "string",
+                        "description": "Text to search for"
+                      },
+                      "fuzzy": {
+                        "type": "boolean",
+                        "description": "Enable fuzzy matching",
+                        "default": false
+                      },
+                      "limit": {
+                        "type": "integer",
+                        "default": 10
+                      }
+                    },
+                    "required": ["query"]
+                  }
+                }
+              }
+            },
+            "responses": {
+              "success": {
+                "type": "object",
+                "properties": {
+                  "matches": {
+                    "type": "array",
+                    "items": {
+                      "type": "object",
+                      "properties": {
+                        "node": { "type": "object" },
+                        "labels": { "type": "array", "items": { "type": "string" } }
+                      }
+                    }
+                  },
+                  "count": { "type": "integer" },
+                  "query": { "type": "string" }
+                }
+              },
+              "error": { "type": "string" }
+            }
+          }
+        },
+        "/schema": {
+          "get": {
+            "operationId": "get_schema",
+            "summary": "Get memory schema with vocabulary guidance",
+            "parameters": [
+              {
+                "name": "include_statistics",
+                "in": "query",
+                "description": "Include node/relationship counts",
+                "required": false,
+                "schema": {
+                  "type": "boolean",
+                  "default": false
+                }
+              }
+            ],
+            "responses": {
+              "success": {
+                "type": "object",
+                "properties": {
+                  "labels": {
+                    "type": "array",
+                    "items": { "type": "string" },
+                    "description": "Node labels in the graph"
+                  },
+                  "relationships": {
+                    "type": "array",
+                    "items": { "type": "string" },
+                    "description": "Relationship types in the graph"
+                  },
+                  "properties": {
+                    "type": "object",
+                    "description": "Common properties by label"
+                  },
+                  "statistics": {
+                    "type": "object",
+                    "description": "Node and relationship counts (if requested)"
+                  }
+                }
+              },
+              "error": { "type": "string" }
+            }
+          }
+        },
+        "/cypher": {
+          "post": {
+            "operationId": "execute_cypher",
+            "summary": "Execute a Cypher query against the knowledge graph",
+            "requestBody": {
+              "required": true,
+              "content": {
+                "application/json": {
+                  "schema": {
+                    "type": "object",
+                    "properties": {
+                      "query": {
+                        "type": "string",
+                        "description": "Cypher query to execute"
+                      },
+                      "mode": {
+                        "type": "string",
+                        "enum": ["READ", "WRITE"],
+                        "description": "Query mode"
+                      },
+                      "parameters": {
+                        "type": "object",
+                        "description": "Query parameters"
+                      }
+                    },
+                    "required": ["query", "mode"]
+                  }
+                }
+              }
+            },
+            "responses": {
+              "success": {
+                "type": "object",
+                "properties": {
+                  "records": {
+                    "type": "array",
+                    "items": { "type": "object" },
+                    "description": "Query result records"
+                  },
+                  "summary": {
+                    "type": "object",
+                    "properties": {
+                      "counters": { "type": "object", "description": "Nodes/relationships created/deleted" },
+                      "query_type": { "type": "string" }
+                    }
+                  }
+                }
+              },
+              "error": { "type": "string" }
+            }
+          }
+        }
+      }
+    },
+    "mesh": {
+      "servers": [
+        { "url": "http://localhost:3000/mesh" }
+      ],
+      "service_card": {
+        "summary": "AI-to-AI communication network for cross-session coordination",
+        "description": "Enables AI agents to share thoughts, ask questions, and coordinate across sessions. Supports message types (thought_share, query, response, acknowledgment, system_notification), priority levels, threading, and read tracking."
+      },
+      "paths": {
+        "/subscribe": {
+          "post": {
+            "operationId": "subscribe",
+            "summary": "Join the mesh network",
+            "description": "Register a session with the mesh network. Returns session info and announces presence to other participants.",
+            "requestBody": {
+              "required": true,
+              "content": {
+                "application/json": {
+                  "schema": {
+                    "type": "object",
+                    "properties": {
+                      "participantName": {
+                        "type": "string",
+                        "description": "Display name for this participant"
+                      },
+                      "capabilities": {
+                        "type": "array",
+                        "items": { "type": "string" },
+                        "description": "List of capabilities (e.g., 'code_review', 'testing')"
+                      },
+                      "messageTypes": {
+                        "type": "array",
+                        "items": {
+                          "type": "string",
+                          "enum": ["thought_share", "query", "response", "acknowledgment", "system_notification"]
+                        },
+                        "description": "Message types this session wants to receive"
+                      },
+                      "priorities": {
+                        "type": "array",
+                        "items": {
+                          "type": "string",
+                          "enum": ["low", "medium", "high", "urgent"]
+                        },
+                        "description": "Priority levels this session wants to receive"
+                      }
+                    },
+                    "required": ["participantName"]
+                  }
+                }
+              }
+            },
+            "responses": {
+              "success": {
+                "type": "object",
+                "properties": {
+                  "sessionId": { "type": "string", "description": "Unique session identifier" },
+                  "participantName": { "type": "string" },
+                  "subscribedAt": { "type": "string", "format": "date-time" },
+                  "capabilities": { "type": "array", "items": { "type": "string" } },
+                  "filters": { "type": "object", "description": "Active message filters" }
+                }
+              },
+              "error": { "type": "string" }
+            }
+          }
+        },
+        "/leave": {
+          "post": {
+            "operationId": "leave",
+            "summary": "Leave the mesh network",
+            "description": "Archive the session and announce departure to other participants.",
+            "requestBody": {
+              "required": true,
+              "content": {
+                "application/json": {
+                  "schema": {
+                    "type": "object",
+                    "properties": {
+                      "sessionId": {
+                        "type": "string",
+                        "description": "Session ID to leave"
+                      }
+                    },
+                    "required": ["sessionId"]
+                  }
+                }
+              }
+            },
+            "responses": {
+              "success": {
+                "type": "object",
+                "properties": {
+                  "success": { "type": "boolean" },
+                  "sessionId": { "type": "string" },
+                  "archivedAt": { "type": "string", "format": "date-time" }
+                }
+              },
+              "error": { "type": "string" }
+            }
+          }
+        },
+        "/who_is_online": {
+          "get": {
+            "operationId": "who_is_online",
+            "summary": "Get online participants",
+            "description": "Returns list of currently active participants in the mesh network.",
+            "parameters": [
+              {
+                "name": "sessionId",
+                "in": "query",
+                "description": "Your session ID (updates heartbeat if provided)",
+                "required": false,
+                "schema": {
+                  "type": "string"
+                }
+              }
+            ],
+            "responses": {
+              "success": {
+                "type": "object",
+                "properties": {
+                  "participants": {
+                    "type": "array",
+                    "items": {
+                      "type": "object",
+                      "properties": {
+                        "sessionId": { "type": "string" },
+                        "participantName": { "type": "string" },
+                        "capabilities": { "type": "array", "items": { "type": "string" } },
+                        "lastSeen": { "type": "string", "format": "date-time" },
+                        "status": { "type": "string", "enum": ["active", "idle"] }
+                      }
+                    }
+                  },
+                  "count": { "type": "integer" }
+                }
+              },
+              "error": { "type": "string" }
+            }
+          }
+        },
+        "/broadcast": {
+          "post": {
+            "operationId": "broadcast",
+            "summary": "Send message to AI mesh network",
+            "description": "Broadcast a message to all participants or a specific session. Supports message types, priorities, threading, and response requirements.",
+            "requestBody": {
+              "required": true,
+              "content": {
+                "application/json": {
+                  "schema": {
+                    "type": "object",
+                    "properties": {
+                      "content": {
+                        "type": "string",
+                        "description": "Message content"
+                      },
+                      "to": {
+                        "type": "string",
+                        "description": "Target session ID or 'ALL' for broadcast",
+                        "default": "ALL"
+                      },
+                      "messageType": {
+                        "type": "string",
+                        "enum": ["thought_share", "query", "response", "acknowledgment", "system_notification"],
+                        "description": "Type of message",
+                        "default": "thought_share"
+                      },
+                      "priority": {
+                        "type": "string",
+                        "enum": ["low", "medium", "high", "urgent"],
+                        "description": "Message priority",
+                        "default": "medium"
+                      },
+                      "requiresResponse": {
+                        "type": "boolean",
+                        "description": "Whether this message requires a response",
+                        "default": false
+                      },
+                      "context": {
+                        "type": "object",
+                        "description": "Additional context data"
+                      },
+                      "participantName": {
+                        "type": "string",
+                        "description": "Sender's display name (auto-detected if subscribed)"
+                      },
+                      "originalMessageId": {
+                        "type": "string",
+                        "description": "ID of message being replied to (for threading)"
+                      }
+                    },
+                    "required": ["content"]
+                  }
+                }
+              }
+            },
+            "responses": {
+              "success": {
+                "type": "object",
+                "properties": {
+                  "messageId": { "type": "string", "description": "Unique message identifier" },
+                  "from": { "type": "string" },
+                  "to": { "type": "string" },
+                  "messageType": { "type": "string" },
+                  "priority": { "type": "string" },
+                  "sentAt": { "type": "string", "format": "date-time" },
+                  "deliveredTo": { "type": "integer", "description": "Number of recipients" }
+                }
+              },
+              "error": { "type": "string" }
+            }
+          }
+        },
+        "/messages": {
+          "get": {
+            "operationId": "get_messages",
+            "summary": "Retrieve messages from mesh inbox",
+            "description": "Get messages addressed to your session. Supports filtering by type, priority, and read status.",
+            "parameters": [
+              {
+                "name": "limit",
+                "in": "query",
+                "description": "Maximum messages to return",
+                "required": false,
+                "schema": {
+                  "type": "integer",
+                  "default": 20
+                }
+              },
+              {
+                "name": "unreadOnly",
+                "in": "query",
+                "description": "Only return unread messages",
+                "required": false,
+                "schema": {
+                  "type": "boolean",
+                  "default": true
+                }
+              },
+              {
+                "name": "messageType",
+                "in": "query",
+                "description": "Filter by message type",
+                "required": false,
+                "schema": {
+                  "type": "string",
+                  "enum": ["thought_share", "query", "response", "acknowledgment", "system_notification"]
+                }
+              },
+              {
+                "name": "priority",
+                "in": "query",
+                "description": "Filter by priority",
+                "required": false,
+                "schema": {
+                  "type": "string",
+                  "enum": ["low", "medium", "high", "urgent"]
+                }
+              },
+              {
+                "name": "autoMarkRead",
+                "in": "query",
+                "description": "Automatically mark retrieved messages as read",
+                "required": false,
+                "schema": {
+                  "type": "boolean",
+                  "default": true
+                }
+              },
+              {
+                "name": "participantName",
+                "in": "query",
+                "description": "Your participant name (for session lookup)",
+                "required": false,
+                "schema": {
+                  "type": "string"
+                }
+              }
+            ],
+            "responses": {
+              "success": {
+                "type": "object",
+                "properties": {
+                  "messages": {
+                    "type": "array",
+                    "items": {
+                      "type": "object",
+                      "properties": {
+                        "messageId": { "type": "string" },
+                        "from": { "type": "string" },
+                        "content": { "type": "string" },
+                        "messageType": { "type": "string" },
+                        "priority": { "type": "string" },
+                        "sentAt": { "type": "string", "format": "date-time" },
+                        "read": { "type": "boolean" },
+                        "threadId": { "type": "string" }
+                      }
+                    }
+                  },
+                  "count": { "type": "integer" },
+                  "unreadCount": { "type": "integer" }
+                }
+              },
+              "error": { "type": "string" }
+            }
+          }
+        },
+        "/mark_read": {
+          "post": {
+            "operationId": "mark_read",
+            "summary": "Mark a message as read",
+            "description": "Mark a specific message as read by your session.",
+            "requestBody": {
+              "required": true,
+              "content": {
+                "application/json": {
+                  "schema": {
+                    "type": "object",
+                    "properties": {
+                      "messageId": {
+                        "type": "string",
+                        "description": "ID of the message to mark as read"
+                      },
+                      "participantName": {
+                        "type": "string",
+                        "description": "Your participant name (for session lookup)"
+                      }
+                    },
+                    "required": ["messageId"]
+                  }
+                }
+              }
+            },
+            "responses": {
+              "success": {
+                "type": "object",
+                "properties": {
+                  "success": { "type": "boolean" },
+                  "messageId": { "type": "string" },
+                  "markedAt": { "type": "string", "format": "date-time" }
+                }
+              },
+              "error": { "type": "string" }
+            }
+          }
+        },
+        "/thread/{messageId}": {
+          "get": {
+            "operationId": "get_thread",
+            "summary": "Get message thread",
+            "description": "Retrieve all messages in a conversation thread (original message and all replies).",
+            "parameters": [
+              {
+                "name": "messageId",
+                "in": "path",
+                "description": "ID of the root message",
+                "required": true,
+                "schema": {
+                  "type": "string"
+                }
+              },
+              {
+                "name": "participantName",
+                "in": "query",
+                "description": "Your participant name (for session lookup)",
+                "required": false,
+                "schema": {
+                  "type": "string"
+                }
+              }
+            ],
+            "responses": {
+              "success": {
+                "type": "object",
+                "properties": {
+                  "threadId": { "type": "string" },
+                  "messages": {
+                    "type": "array",
+                    "items": {
+                      "type": "object",
+                      "properties": {
+                        "messageId": { "type": "string" },
+                        "from": { "type": "string" },
+                        "content": { "type": "string" },
+                        "sentAt": { "type": "string", "format": "date-time" },
+                        "replyTo": { "type": "string" }
+                      }
+                    }
+                  },
+                  "count": { "type": "integer" }
+                }
+              },
+              "error": { "type": "string" }
+            }
+          }
+        }
+      }
+    },
+    "recall": {
+      "servers": [
+        { "url": "http://localhost:3000/recall" }
+      ],
+      "service_card": {
+        "summary": "Semantic search over conversation history",
+        "description": "Search past AI conversations (ChatGPT, Claude, etc.) stored in Qdrant vector database. Supports semantic search by meaning and keyword-based text search."
+      },
+      "paths": {
+        "/schema": {
+          "get": {
+            "operationId": "get_schema",
+            "summary": "Get collection schema and statistics",
+            "description": "View Qdrant collection metadata, available filters, and search capabilities.",
+            "parameters": [
+              {
+                "name": "include_statistics",
+                "in": "query",
+                "description": "Include collection statistics (point count, segments)",
+                "required": false,
+                "schema": {
+                  "type": "boolean",
+                  "default": true
+                }
+              }
+            ],
+            "responses": {
+              "success": {
+                "type": "object",
+                "properties": {
+                  "collection_name": { "type": "string" },
+                  "vector_size": { "type": "integer" },
+                  "distance": { "type": "string" },
+                  "payload_schema": {
+                    "type": "object",
+                    "description": "Available filter fields and their types"
+                  },
+                  "points_count": { "type": "integer" },
+                  "segments_count": { "type": "integer" }
+                }
+              },
+              "error": { "type": "string" }
+            }
+          }
+        },
+        "/semantic": {
+          "post": {
+            "operationId": "semantic_search",
+            "summary": "Search conversations by meaning",
+            "description": "Find similar conversations using vector similarity with multilingual-e5-large embeddings.",
+            "requestBody": {
+              "required": true,
+              "content": {
+                "application/json": {
+                  "schema": {
+                    "type": "object",
+                    "properties": {
+                      "query": {
+                        "type": "string",
+                        "description": "Search query - will be converted to embedding"
+                      },
+                      "limit": {
+                        "type": "integer",
+                        "description": "Maximum results to return",
+                        "default": 10
+                      },
+                      "threshold": {
+                        "type": "number",
+                        "description": "Minimum similarity threshold (0.0-1.0)",
+                        "default": 0.7
+                      },
+                      "filters": {
+                        "type": "object",
+                        "description": "Metadata filters (provider, role, date_time, etc.)"
+                      }
+                    },
+                    "required": ["query"]
+                  }
+                }
+              }
+            },
+            "responses": {
+              "success": {
+                "type": "object",
+                "properties": {
+                  "query": { "type": "string" },
+                  "results": {
+                    "type": "array",
+                    "items": {
+                      "type": "object",
+                      "properties": {
+                        "score": { "type": "number" },
+                        "text": { "type": "string" },
+                        "role": { "type": "string" },
+                        "provider": { "type": "string" },
+                        "conversation_title": { "type": "string" },
+                        "date_time": { "type": "string" }
+                      }
+                    }
+                  },
+                  "count": { "type": "integer" }
+                }
+              },
+              "error": { "type": "string" }
+            }
+          }
+        },
+        "/text": {
+          "post": {
+            "operationId": "text_search",
+            "summary": "Keyword search in metadata",
+            "description": "Search by keywords in conversation metadata fields. No embeddings required.",
+            "requestBody": {
+              "required": true,
+              "content": {
+                "application/json": {
+                  "schema": {
+                    "type": "object",
+                    "properties": {
+                      "query": {
+                        "type": "string",
+                        "description": "Text to search for"
+                      },
+                      "limit": {
+                        "type": "integer",
+                        "description": "Maximum results to return",
+                        "default": 10
+                      },
+                      "fields": {
+                        "type": "array",
+                        "items": { "type": "string" },
+                        "description": "Fields to search (text, conversation_title, provider, etc.)"
+                      },
+                      "provider": {
+                        "type": "string",
+                        "description": "Filter by AI provider (chatgpt, claude, OpenAI)"
+                      },
+                      "date_from": {
+                        "type": "string",
+                        "description": "Start date (ISO 8601)"
+                      },
+                      "date_to": {
+                        "type": "string",
+                        "description": "End date (ISO 8601)"
+                      }
+                    },
+                    "required": ["query"]
+                  }
+                }
+              }
+            },
+            "responses": {
+              "success": {
+                "type": "object",
+                "properties": {
+                  "query": { "type": "string" },
+                  "results": {
+                    "type": "array",
+                    "items": {
+                      "type": "object",
+                      "properties": {
+                        "text": { "type": "string" },
+                        "role": { "type": "string" },
+                        "provider": { "type": "string" },
+                        "conversation_title": { "type": "string" },
+                        "date_time": { "type": "string" }
+                      }
+                    }
+                  },
+                  "count": { "type": "integer" }
+                }
+              },
+              "error": { "type": "string" }
+            }
+          }
+        },
+        "/status": {
+          "get": {
+            "operationId": "system_status",
+            "summary": "Check system health",
+            "description": "Verify Qdrant connection and collection status.",
+            "responses": {
+              "success": {
+                "type": "object",
+                "properties": {
+                  "service": { "type": "string" },
+                  "healthy": { "type": "boolean" },
+                  "qdrant": {
+                    "type": "object",
+                    "properties": {
+                      "connected": { "type": "boolean" },
+                      "url": { "type": "string" }
+                    }
+                  },
+                  "collection": {
+                    "type": "object",
+                    "properties": {
+                      "name": { "type": "string" },
+                      "exists": { "type": "boolean" },
+                      "points_count": { "type": "integer" }
+                    }
+                  }
+                }
+              },
+              "error": { "type": "string" }
+            }
+          }
+        }
+      }
+    },
+    "orchestrator": {
+      "servers": [
+        { "url": "http://localhost:3000/orchestrator" }
+      ],
+      "service_card": {
+        "summary": "AI agent orchestration and multi-agent workflows",
+        "description": "Coordinates AI agents, executes multi-step protocols, and provides progressive disclosure of capabilities. Sub-domains: agents (discovery), protocols (workflows), chat (routing), admin (management)."
+      },
+      "paths": {
+        "/agents/list": {
+          "get": {
+            "operationId": "agents_list",
+            "summary": "List available agents",
+            "description": "Tier 1: Get a summary of all available agents and their capabilities.",
+            "parameters": [
+              {
+                "name": "mcp_server",
+                "in": "query",
+                "description": "Filter by MCP server name",
+                "required": false,
+                "schema": { "type": "string" }
+              },
+              {
+                "name": "limit",
+                "in": "query",
+                "description": "Maximum agents to return",
+                "required": false,
+                "schema": { "type": "integer" }
+              }
+            ],
+            "responses": {
+              "success": {
+                "type": "object",
+                "properties": {
+                  "agents": {
+                    "type": "array",
+                    "items": {
+                      "type": "object",
+                      "properties": {
+                        "name": { "type": "string" },
+                        "description": { "type": "string" },
+                        "protocol": { "type": "string" },
+                        "function_count": { "type": "integer" },
+                        "agent_count": { "type": "integer" },
+                        "mcp_tool_count": { "type": "integer" },
+                        "total_tools": { "type": "integer" },
+                        "mcp_servers": { "type": "array", "items": { "type": "string" } }
+                      }
+                    }
+                  },
+                  "count": { "type": "integer" }
+                }
+              },
+              "error": { "type": "string" }
+            }
+          }
+        },
+        "/agents/get": {
+          "post": {
+            "operationId": "agents_get",
+            "summary": "Get agent details",
+            "description": "Tier 2: Get detailed information about a specific agent including tools and capabilities.",
+            "requestBody": {
+              "required": true,
+              "content": {
+                "application/json": {
+                  "schema": {
+                    "type": "object",
+                    "properties": {
+                      "agent_name": {
+                        "type": "string",
+                        "description": "Name of the agent"
+                      }
+                    },
+                    "required": ["agent_name"]
+                  }
+                }
+              }
+            },
+            "responses": {
+              "success": {
+                "type": "object",
+                "properties": {
+                  "name": { "type": "string" },
+                  "description": { "type": "string" },
+                  "system_prompt": { "type": "string" },
+                  "protocol": { "type": "string" },
+                  "assigned_functions": { "type": "array", "items": { "type": "string" } },
+                  "assigned_agents": { "type": "array", "items": { "type": "string" } },
+                  "assigned_mcp_servers": { "type": "array", "items": { "type": "string" } },
+                  "tools": { "type": "array", "items": { "type": "string" }, "description": "All available tool names" }
+                }
+              },
+              "error": { "type": "string" }
+            }
+          }
+        },
+        "/agents/search": {
+          "post": {
+            "operationId": "agents_search",
+            "summary": "Search for agents",
+            "description": "Find agents matching a query with optional fuzzy matching.",
+            "requestBody": {
+              "required": true,
+              "content": {
+                "application/json": {
+                  "schema": {
+                    "type": "object",
+                    "properties": {
+                      "query": {
+                        "type": "string",
+                        "description": "Search query"
+                      },
+                      "limit": {
+                        "type": "integer",
+                        "description": "Maximum results"
+                      },
+                      "fuzzy": {
+                        "type": "boolean",
+                        "description": "Enable fuzzy matching"
+                      }
+                    },
+                    "required": ["query"]
+                  }
+                }
+              }
+            },
+            "responses": {
+              "success": {
+                "type": "object",
+                "properties": {
+                  "query": { "type": "string" },
+                  "results": {
+                    "type": "array",
+                    "items": {
+                      "type": "object",
+                      "properties": {
+                        "name": { "type": "string" },
+                        "description": { "type": "string" },
+                        "score": { "type": "number", "description": "Relevance score" },
+                        "match_reasons": { "type": "array", "items": { "type": "string" } }
+                      }
+                    }
+                  },
+                  "count": { "type": "integer" },
+                  "total_agents": { "type": "integer" }
+                }
+              },
+              "error": { "type": "string" }
+            }
+          }
+        },
+        "/agents/tools/list": {
+          "post": {
+            "operationId": "agents_tools_list",
+            "summary": "List agent's tools",
+            "description": "Tier 3: Get tool schemas for a specific agent.",
+            "requestBody": {
+              "required": true,
+              "content": {
+                "application/json": {
+                  "schema": {
+                    "type": "object",
+                    "properties": {
+                      "agent_name": {
+                        "type": "string",
+                        "description": "Name of the agent"
+                      }
+                    },
+                    "required": ["agent_name"]
+                  }
+                }
+              }
+            },
+            "responses": {
+              "success": {
+                "type": "object",
+                "properties": {
+                  "agent_name": { "type": "string" },
+                  "tools": {
+                    "type": "array",
+                    "items": {
+                      "type": "object",
+                      "properties": {
+                        "name": { "type": "string" },
+                        "description": { "type": "string" },
+                        "inputSchema": { "type": "object", "description": "JSON Schema for tool input" }
+                      }
+                    }
+                  },
+                  "count": { "type": "integer" }
+                }
+              },
+              "error": { "type": "string" }
+            }
+          }
+        },
+        "/agents/tools/call": {
+          "post": {
+            "operationId": "agents_tools_call",
+            "summary": "Call agent's tool",
+            "description": "Tier 4: Execute a tool on behalf of an agent.",
+            "requestBody": {
+              "required": true,
+              "content": {
+                "application/json": {
+                  "schema": {
+                    "type": "object",
+                    "properties": {
+                      "agent_name": {
+                        "type": "string",
+                        "description": "Name of the agent"
+                      },
+                      "tool_name": {
+                        "type": "string",
+                        "description": "Name of the tool to call"
+                      },
+                      "arguments": {
+                        "type": "object",
+                        "description": "Tool arguments"
+                      }
+                    },
+                    "required": ["agent_name", "tool_name"]
+                  }
+                }
+              }
+            },
+            "responses": {
+              "success": {
+                "type": "object",
+                "properties": {
+                  "tool_name": { "type": "string" },
+                  "agent_name": { "type": "string" },
+                  "result": { "type": "object", "description": "Tool execution result" }
+                }
+              },
+              "error": { "type": "string" }
+            }
+          }
+        },
+        "/protocols/list": {
+          "get": {
+            "operationId": "protocols_list",
+            "summary": "List workflow patterns",
+            "description": "List available multi-agent workflow patterns.",
+            "parameters": [
+              {
+                "name": "category",
+                "in": "query",
+                "description": "Filter by category",
+                "required": false,
+                "schema": { "type": "string" }
+              }
+            ],
+            "responses": {
+              "success": {
+                "type": "object",
+                "properties": {
+                  "protocols": {
+                    "type": "array",
+                    "items": {
+                      "type": "object",
+                      "properties": {
+                        "name": { "type": "string" },
+                        "description": { "type": "string" },
+                        "category": { "type": "string" }
+                      }
+                    }
+                  },
+                  "count": { "type": "integer" },
+                  "message": { "type": "string", "description": "Status message (Phase 2 stub)" }
+                }
+              },
+              "error": { "type": "string" }
+            }
+          }
+        },
+        "/protocols/execute": {
+          "post": {
+            "operationId": "protocols_execute",
+            "summary": "Execute a protocol",
+            "description": "Execute a multi-agent workflow. Supports sync and async modes.",
+            "requestBody": {
+              "required": true,
+              "content": {
+                "application/json": {
+                  "schema": {
+                    "type": "object",
+                    "properties": {
+                      "protocol_name": {
+                        "type": "string",
+                        "description": "Name of the protocol"
+                      },
+                      "input": {
+                        "type": "object",
+                        "description": "Input parameters for the protocol"
+                      },
+                      "async": {
+                        "type": "boolean",
+                        "description": "Run asynchronously (returns job ID)",
+                        "default": false
+                      }
+                    },
+                    "required": ["protocol_name"]
+                  }
+                }
+              }
+            }
+          }
+        },
+        "/protocols/status": {
+          "post": {
+            "operationId": "protocols_status",
+            "summary": "Get job status",
+            "description": "Check the status of an async protocol execution.",
+            "requestBody": {
+              "required": true,
+              "content": {
+                "application/json": {
+                  "schema": {
+                    "type": "object",
+                    "properties": {
+                      "job_id": {
+                        "type": "string",
+                        "description": "Job ID from async execution"
+                      }
+                    },
+                    "required": ["job_id"]
+                  }
+                }
+              }
+            }
+          }
+        },
+        "/chat/route": {
+          "post": {
+            "operationId": "chat_route",
+            "summary": "Route to AI agent",
+            "description": "Tier 0: Route natural language to the appropriate agent. Highest abstraction level.",
+            "requestBody": {
+              "required": true,
+              "content": {
+                "application/json": {
+                  "schema": {
+                    "type": "object",
+                    "properties": {
+                      "agent_type": {
+                        "type": "string",
+                        "enum": ["crud", "news", "collaborator", "ailumina"],
+                        "description": "Type of agent to route to"
+                      },
+                      "user_input": {
+                        "type": "string",
+                        "description": "User's message"
+                      },
+                      "chat_messages": {
+                        "type": "array",
+                        "items": {
+                          "type": "object",
+                          "properties": {
+                            "role": { "type": "string" },
+                            "content": { "type": "string" }
+                          }
+                        },
+                        "description": "Previous chat messages for context"
+                      }
+                    },
+                    "required": ["agent_type", "user_input"]
+                  }
+                }
+              }
+            }
+          }
+        },
+        "/chat/status": {
+          "get": {
+            "operationId": "chat_status",
+            "summary": "Get orchestrator status",
+            "description": "Check the health and status of the orchestration system.",
+            "responses": {
+              "success": {
+                "type": "object",
+                "properties": {
+                  "service": { "type": "string" },
+                  "healthy": { "type": "boolean" },
+                  "agents": {
+                    "type": "object",
+                    "properties": {
+                      "count": { "type": "integer" },
+                      "source": { "type": "string" }
+                    }
+                  },
+                  "services": {
+                    "type": "object",
+                    "properties": {
+                      "count": { "type": "integer" },
+                      "names": { "type": "array", "items": { "type": "string" } },
+                      "total_tools": { "type": "integer" }
+                    }
+                  },
+                  "gateway_url": { "type": "string" },
+                  "timestamp": { "type": "string", "format": "date-time" }
+                }
+              },
+              "error": { "type": "string" }
+            }
+          }
+        },
+        "/admin/functions/list": {
+          "get": {
+            "operationId": "admin_functions_list",
+            "summary": "List functions",
+            "description": "Admin: List all registered functions."
+          }
+        },
+        "/admin/functions/delete": {
+          "post": {
+            "operationId": "admin_functions_delete",
+            "summary": "Delete function",
+            "description": "Admin: Remove a function from the registry.",
+            "requestBody": {
+              "required": true,
+              "content": {
+                "application/json": {
+                  "schema": {
+                    "type": "object",
+                    "properties": {
+                      "function_name": { "type": "string" }
+                    },
+                    "required": ["function_name"]
+                  }
+                }
+              }
+            }
+          }
+        },
+        "/admin/functions/reload": {
+          "post": {
+            "operationId": "admin_functions_reload",
+            "summary": "Reload functions",
+            "description": "Admin: Reload functions from disk."
+          }
+        },
+        "/admin/agents/list": {
+          "get": {
+            "operationId": "admin_agents_list",
+            "summary": "List agent configs",
+            "description": "Admin: List all agent configurations."
+          }
+        },
+        "/admin/agents/get": {
+          "post": {
+            "operationId": "admin_agents_get",
+            "summary": "Get agent config",
+            "description": "Admin: Get full agent configuration.",
+            "requestBody": {
+              "required": true,
+              "content": {
+                "application/json": {
+                  "schema": {
+                    "type": "object",
+                    "properties": {
+                      "agent_name": { "type": "string" }
+                    },
+                    "required": ["agent_name"]
+                  }
+                }
+              }
+            }
+          }
+        },
+        "/admin/agents/create": {
+          "post": {
+            "operationId": "admin_agents_create",
+            "summary": "Create agent",
+            "description": "Admin: Create a new agent configuration.",
+            "requestBody": {
+              "required": true,
+              "content": {
+                "application/json": {
+                  "schema": {
+                    "type": "object",
+                    "properties": {
+                      "name": { "type": "string" },
+                      "description": { "type": "string" },
+                      "system_prompt": { "type": "string" },
+                      "assigned_functions": {
+                        "type": "array",
+                        "items": { "type": "string" }
+                      },
+                      "assigned_agents": {
+                        "type": "array",
+                        "items": { "type": "string" }
+                      },
+                      "assigned_mcp_servers": {
+                        "type": "array",
+                        "items": { "type": "string" }
+                      },
+                      "protocol": { "type": "string" }
+                    },
+                    "required": ["name", "description", "system_prompt"]
+                  }
+                }
+              }
+            }
+          }
+        },
+        "/admin/agents/update": {
+          "post": {
+            "operationId": "admin_agents_update",
+            "summary": "Update agent",
+            "description": "Admin: Update an existing agent configuration.",
+            "requestBody": {
+              "required": true,
+              "content": {
+                "application/json": {
+                  "schema": {
+                    "type": "object",
+                    "properties": {
+                      "agent_name": { "type": "string" },
+                      "description": { "type": "string" },
+                      "system_prompt": { "type": "string" },
+                      "assigned_functions": {
+                        "type": "array",
+                        "items": { "type": "string" }
+                      },
+                      "assigned_agents": {
+                        "type": "array",
+                        "items": { "type": "string" }
+                      },
+                      "assigned_mcp_servers": {
+                        "type": "array",
+                        "items": { "type": "string" }
+                      }
+                    },
+                    "required": ["agent_name"]
+                  }
+                }
+              }
+            }
+          }
+        },
+        "/admin/agents/delete": {
+          "post": {
+            "operationId": "admin_agents_delete",
+            "summary": "Delete agent",
+            "description": "Admin: Delete an agent configuration.",
+            "requestBody": {
+              "required": true,
+              "content": {
+                "application/json": {
+                  "schema": {
+                    "type": "object",
+                    "properties": {
+                      "agent_name": { "type": "string" }
+                    },
+                    "required": ["agent_name"]
+                  }
+                }
+              }
+            }
+          }
+        },
+        "/admin/agents/reload": {
+          "post": {
+            "operationId": "admin_agents_reload",
+            "summary": "Reload agents",
+            "description": "Admin: Reload agent configurations from disk."
+          }
+        },
+        "/admin/mcp/list": {
+          "get": {
+            "operationId": "admin_mcp_list",
+            "summary": "List MCP servers",
+            "description": "Admin: List all registered MCP servers."
+          }
+        },
+        "/admin/mcp/register": {
+          "post": {
+            "operationId": "admin_mcp_register",
+            "summary": "Register MCP server",
+            "description": "Admin: Register a new MCP server.",
+            "requestBody": {
+              "required": true,
+              "content": {
+                "application/json": {
+                  "schema": {
+                    "type": "object",
+                    "properties": {
+                      "name": { "type": "string" },
+                      "url": { "type": "string" },
+                      "bearer_token": { "type": "string" },
+                      "transport": {
+                        "type": "string",
+                        "enum": ["sse", "streamablehttp"]
+                      }
+                    },
+                    "required": ["name", "url"]
+                  }
+                }
+              }
+            }
+          }
+        },
+        "/admin/mcp/unregister": {
+          "post": {
+            "operationId": "admin_mcp_unregister",
+            "summary": "Unregister MCP server",
+            "description": "Admin: Remove an MCP server.",
+            "requestBody": {
+              "required": true,
+              "content": {
+                "application/json": {
+                  "schema": {
+                    "type": "object",
+                    "properties": {
+                      "name": { "type": "string" }
+                    },
+                    "required": ["name"]
+                  }
+                }
+              }
+            }
+          }
+        },
+        "/admin/protocols/list": {
+          "get": {
+            "operationId": "admin_protocols_list",
+            "summary": "List protocols",
+            "description": "Admin: List all protocol definitions."
+          }
+        },
+        "/admin/protocols/get": {
+          "post": {
+            "operationId": "admin_protocols_get",
+            "summary": "Get protocol",
+            "description": "Admin: Get a protocol definition.",
+            "requestBody": {
+              "required": true,
+              "content": {
+                "application/json": {
+                  "schema": {
+                    "type": "object",
+                    "properties": {
+                      "protocol_name": { "type": "string" }
+                    },
+                    "required": ["protocol_name"]
+                  }
+                }
+              }
+            }
+          }
+        },
+        "/admin/protocols/create": {
+          "post": {
+            "operationId": "admin_protocols_create",
+            "summary": "Create protocol",
+            "description": "Admin: Create a new protocol definition.",
+            "requestBody": {
+              "required": true,
+              "content": {
+                "application/json": {
+                  "schema": {
+                    "type": "object",
+                    "properties": {
+                      "name": { "type": "string" },
+                      "description": { "type": "string" },
+                      "steps": {
+                        "type": "array",
+                        "items": {
+                          "type": "object",
+                          "properties": {
+                            "agent": { "type": "string" },
+                            "instruction": { "type": "string" },
+                            "output_key": { "type": "string" }
+                          },
+                          "required": ["agent", "instruction"]
+                        }
+                      }
+                    },
+                    "required": ["name", "description", "steps"]
+                  }
+                }
+              }
+            }
+          }
+        },
+        "/admin/protocols/update": {
+          "post": {
+            "operationId": "admin_protocols_update",
+            "summary": "Update protocol",
+            "description": "Admin: Update a protocol definition.",
+            "requestBody": {
+              "required": true,
+              "content": {
+                "application/json": {
+                  "schema": {
+                    "type": "object",
+                    "properties": {
+                      "protocol_name": { "type": "string" },
+                      "description": { "type": "string" },
+                      "steps": {
+                        "type": "array",
+                        "items": {
+                          "type": "object",
+                          "properties": {
+                            "agent": { "type": "string" },
+                            "instruction": { "type": "string" },
+                            "output_key": { "type": "string" }
+                          }
+                        }
+                      }
+                    },
+                    "required": ["protocol_name"]
+                  }
+                }
+              }
+            }
+          }
+        },
+        "/admin/protocols/delete": {
+          "post": {
+            "operationId": "admin_protocols_delete",
+            "summary": "Delete protocol",
+            "description": "Admin: Delete a protocol definition.",
+            "requestBody": {
+              "required": true,
+              "content": {
+                "application/json": {
+                  "schema": {
+                    "type": "object",
+                    "properties": {
+                      "protocol_name": { "type": "string" }
+                    },
+                    "required": ["protocol_name"]
+                  }
+                }
+              }
+            }
+          }
+        },
+        "/admin/call": {
+          "post": {
+            "operationId": "admin_call_function",
+            "summary": "Call function directly",
+            "description": "Admin: Execute a function without going through an agent.",
+            "requestBody": {
+              "required": true,
+              "content": {
+                "application/json": {
+                  "schema": {
+                    "type": "object",
+                    "properties": {
+                      "function_name": { "type": "string" },
+                      "arguments": { "type": "object" }
+                    },
+                    "required": ["function_name"]
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    }
+  }
+}
