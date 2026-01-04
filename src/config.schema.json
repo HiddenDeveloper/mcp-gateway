@@ -1,0 +1,236 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "$id": "config.schema.json",
+  "title": "MCP Gateway Configuration",
+  "description": "OpenAPI-compatible schema for MCP gateway configuration",
+  "type": "object",
+  "required": ["gateway", "services"],
+  "properties": {
+    "gateway": {
+      "type": "object",
+      "description": "Gateway-level configuration",
+      "required": ["info", "service_card"],
+      "properties": {
+        "info": {
+          "$ref": "#/$defs/info"
+        },
+        "service_card": {
+          "$ref": "#/$defs/serviceCard"
+        }
+      }
+    },
+    "services": {
+      "type": "array",
+      "description": "Backend services exposed through the gateway",
+      "items": {
+        "$ref": "#/$defs/service"
+      },
+      "minItems": 1
+    }
+  },
+  "$defs": {
+    "info": {
+      "type": "object",
+      "description": "OpenAPI-compatible info object",
+      "required": ["title", "version"],
+      "properties": {
+        "title": {
+          "type": "string",
+          "description": "Service name"
+        },
+        "version": {
+          "type": "string",
+          "description": "Service version",
+          "pattern": "^[0-9]+\\.[0-9]+\\.[0-9]+$"
+        },
+        "description": {
+          "type": "string",
+          "description": "Service description"
+        }
+      }
+    },
+    "server": {
+      "type": "object",
+      "description": "OpenAPI-compatible server object",
+      "required": ["url"],
+      "properties": {
+        "url": {
+          "type": "string",
+          "format": "uri",
+          "description": "Base URL for the service"
+        },
+        "description": {
+          "type": "string",
+          "description": "Server description"
+        }
+      }
+    },
+    "serviceCard": {
+      "type": "object",
+      "description": "Service discovery endpoint - exposed as MCP tool",
+      "required": ["operationId", "summary"],
+      "properties": {
+        "operationId": {
+          "type": "string",
+          "description": "Unique identifier for MCP tool name",
+          "pattern": "^[a-z][a-z0-9_]*$"
+        },
+        "summary": {
+          "type": "string",
+          "description": "Short description (used as MCP tool description)"
+        },
+        "description": {
+          "type": "string",
+          "description": "Detailed description"
+        }
+      }
+    },
+    "service": {
+      "type": "object",
+      "description": "A backend service with its API operations",
+      "required": ["servers", "service_card"],
+      "properties": {
+        "servers": {
+          "type": "array",
+          "description": "Backend servers for this service",
+          "items": {
+            "$ref": "#/$defs/server"
+          },
+          "minItems": 1
+        },
+        "service_card": {
+          "$ref": "#/$defs/serviceCard"
+        },
+        "paths": {
+          "type": "object",
+          "description": "OpenAPI-compatible path definitions",
+          "additionalProperties": {
+            "$ref": "#/$defs/pathItem"
+          }
+        }
+      }
+    },
+    "pathItem": {
+      "type": "object",
+      "description": "OpenAPI-compatible path item",
+      "properties": {
+        "get": { "$ref": "#/$defs/operation" },
+        "post": { "$ref": "#/$defs/operation" },
+        "put": { "$ref": "#/$defs/operation" },
+        "patch": { "$ref": "#/$defs/operation" },
+        "delete": { "$ref": "#/$defs/operation" }
+      }
+    },
+    "operation": {
+      "type": "object",
+      "description": "OpenAPI-compatible operation object",
+      "required": ["operationId", "summary"],
+      "properties": {
+        "operationId": {
+          "type": "string",
+          "description": "Unique operation identifier"
+        },
+        "summary": {
+          "type": "string",
+          "description": "Short operation description"
+        },
+        "description": {
+          "type": "string",
+          "description": "Detailed operation description"
+        },
+        "parameters": {
+          "type": "array",
+          "description": "OpenAPI-compatible parameters (query, path, header)",
+          "items": {
+            "$ref": "#/$defs/parameter"
+          }
+        },
+        "requestBody": {
+          "$ref": "#/$defs/requestBody"
+        }
+      }
+    },
+    "parameter": {
+      "type": "object",
+      "description": "OpenAPI-compatible parameter object",
+      "required": ["name", "in"],
+      "properties": {
+        "name": {
+          "type": "string"
+        },
+        "in": {
+          "type": "string",
+          "enum": ["query", "path", "header"]
+        },
+        "description": {
+          "type": "string"
+        },
+        "required": {
+          "type": "boolean",
+          "default": false
+        },
+        "schema": {
+          "$ref": "#/$defs/schema"
+        }
+      }
+    },
+    "requestBody": {
+      "type": "object",
+      "description": "OpenAPI-compatible request body",
+      "properties": {
+        "description": {
+          "type": "string"
+        },
+        "required": {
+          "type": "boolean",
+          "default": false
+        },
+        "content": {
+          "type": "object",
+          "properties": {
+            "application/json": {
+              "type": "object",
+              "properties": {
+                "schema": {
+                  "$ref": "#/$defs/schema"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "schema": {
+      "type": "object",
+      "description": "JSON Schema for parameter or request body",
+      "properties": {
+        "type": {
+          "type": "string",
+          "enum": ["string", "integer", "number", "boolean", "array", "object"]
+        },
+        "description": {
+          "type": "string"
+        },
+        "default": {},
+        "enum": {
+          "type": "array"
+        },
+        "properties": {
+          "type": "object",
+          "additionalProperties": {
+            "$ref": "#/$defs/schema"
+          }
+        },
+        "required": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          }
+        },
+        "items": {
+          "$ref": "#/$defs/schema"
+        }
+      }
+    }
+  }
+}

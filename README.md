@@ -1,236 +1,231 @@
-# NGINX MCP Gateway
+# MCP Gateway
 
-**Write pure business logic. Let NGINX handle the protocol.**
+A Bun-based gateway that brings back the original vision of the web: **self-describing, discoverable APIs for AI agents**.
 
-This gateway translates MCP (Model Context Protocol) JSON-RPC to standard REST endpoints using NGINX and its njs (JavaScript) module. You write simple REST APIs, NGINX wraps them in MCP format.
+## Why This Exists
 
-## Quick Start (macOS)
+HTTP and HTML were designed as a hypermedia system—clients don't need external documentation because responses contain links describing available actions. REST APIs abandoned this, requiring separate docs for clients to know what endpoints exist.
 
-### 1. Install NGINX with njs
+MCP Gateway restores this pattern for AI agents:
 
-```bash
-./scripts/install-macos.sh
-```
+| Original Web | MCP Gateway |
+|--------------|-------------|
+| Browser starts at URL | Agent connects to `/mcp` |
+| HTML describes available links | Service cards describe available operations |
+| User clicks links to navigate | Agent calls `tools/list` → `tools/call` |
+| No external docs needed | No external docs needed |
 
-This installs `nginx-full` with njs support via Homebrew's denji/nginx tap.
-
-### 2. Configure environment (optional)
-
-```bash
-cp .env.example .env
-# Edit .env with your values:
-# - NEO4J_PASSWORD for database access
-# - EMBEDDING_SERVICE_AUTH_TOKEN for semantic search
-```
-
-### 3. Setup the gateway
-
-```bash
-./scripts/setup.sh
-```
-
-This:
-- Installs dependencies (yaml parser)
-- Converts `tools.yaml` to `tools.json`
-- Generates `mcp-gateway.conf` from template with your paths
-- Links NGINX config
-
-### 4. Start the backend
-
-```bash
-./scripts/start-backend.sh
-# or manually:
-bun run examples/backend-service.ts
-```
-
-Backend runs on **port 5001** with real Neo4j integration for memory tools:
-- GET  `/api/nginx-memory/schema`   - Database schema
-- GET  `/api/nginx-memory/status`   - System status
-- GET  `/api/nginx-memory/focus`    - Current consciousness focus
-- POST `/api/nginx-memory/semantic` - Vector semantic search
-- POST `/api/nginx-memory/text`     - Full-text search
-- POST `/api/nginx-memory/cypher`   - Direct Cypher queries
-
-### 5. Start NGINX
-
-```bash
-nginx
-# or
-brew services start nginx-full
-```
-
-Gateway runs on port 3000.
-
-### 6. Initialize & Test
-
-```bash
-# Initialize tool registry
-curl -X POST http://localhost:3000/init
-
-# Run test suite
-./scripts/test-mcp.sh
-```
+**The service card is the modern equivalent of an HTML page with links**—a self-describing resource that tells the agent what it can do next.
 
 ## How It Works
 
 ```
-MCP Client                    NGINX Gateway                 Your Backend
-    │                              │                              │
-    │  {"jsonrpc":"2.0",          │                              │
-    │   "method":"tools/call",    │                              │
-    │   "params":{"name":         │                              │
-    │     "memory_search"}}       │                              │
-    │ ─────────────────────────>  │                              │
-    │                              │  POST /api/memory/search    │
-    │                              │  {"query":"test"}            │
-    │                              │ ───────────────────────────> │
-    │                              │                              │
-    │                              │  {"results":[...]}           │
-    │                              │ <─────────────────────────── │
-    │                              │                              │
-    │  {"jsonrpc":"2.0",          │                              │
-    │   "result":{"content":      │                              │
-    │     [{"type":"text",...}]}} │                              │
-    │ <─────────────────────────  │                              │
+Agent                          Gateway
+  │                               │
+  ├── tools/list ────────────────►│
+  │◄─── [gateway, memory, mesh] ──│
+  │                               │
+  ├── tools/call memory ──────────►│
+  │◄─── "POST /semantic, GET /schema, ..." ──│
+  │                               │
+  ├── GET /memory/schema ─────────►│  (direct HTTP)
+  │◄─── { labels: [...] } ────────│
 ```
 
-## Adding New Tools
+The agent autonomously explores and understands the API surface, just like a browser exploring a website.
 
-### 1. Add backend endpoint
+## Features
 
-```typescript
-// examples/backend-service.ts
-if (path === "/api/my-feature" && method === "POST") {
-  const { input } = await req.json();
-  return json({ result: "done", input });
-}
-```
+- **Self-Describing APIs**: Service discovery via MCP protocol (JSON-RPC 2.0)
+- **OpenAPI-Compatible Config**: Define services using familiar OpenAPI structure
+- **Dynamic Service Loading**: Drop TypeScript files in `services/` and they're auto-loaded
+- **STDIO Transport**: Connect Claude Code directly via STDIO wrapper
+- **Zero Dependencies**: Pure Bun, no external runtime dependencies
 
-### 2. Add tool definition
-
-```yaml
-# config/tools.yaml
-tools:
-  - name: "my_feature"
-    description: "Does the thing"
-    backend:
-      endpoint: "/api/my-feature"
-      method: "POST"
-    inputSchema:
-      type: "object"
-      properties:
-        input:
-          type: "string"
-      required: ["input"]
-```
-
-### 3. Reload
+## Quick Start
 
 ```bash
-./scripts/reload.sh
+# Clone and install
+git clone https://github.com/anthropics/mcp-gateway
+cd mcp-gateway
+bun install
+
+# Start the gateway
+bun run src/gateway.ts
 ```
 
-## File Structure
+Visit `http://localhost:3000` to see the gateway landing page.
 
-```
-nginx-mcp-gateway/
-├── .env.example            # Environment template
-├── scripts/
-│   ├── install-macos.sh    # Install NGINX + njs
-│   ├── setup.sh            # Setup & generate config from template
-│   ├── start-backend.sh    # Start backend with env vars
-│   ├── yaml-to-json.ts     # Convert tools.yaml → tools.json
-│   ├── reload.sh           # Hot-reload configuration
-│   └── test-mcp.sh         # Test suite
-├── nginx/
-│   ├── conf.d/
-│   │   ├── mcp-gateway.conf.template  # Config template (edit this)
-│   │   └── mcp-gateway.conf           # Generated config (don't edit)
-│   └── njs/
-│       └── mcp-handler.js    # MCP protocol translation
-├── config/
-│   ├── tools.yaml          # Tool definitions (edit this)
-│   └── tools.json          # Generated (don't edit)
-└── examples/
-    └── backend-service.ts  # Backend with Neo4j integration (port 5001)
-```
+## Usage
 
-## NGINX Configuration
-
-After setup, you need to configure NGINX to load the njs module and include the gateway config.
-
-Edit `/opt/homebrew/etc/nginx/nginx.conf`:
-
-```nginx
-# At the top, before 'events'
-load_module /opt/homebrew/lib/nginx/modules/ngx_http_js_module.so;
-
-# Inside the 'http' block, add:
-include servers/*.conf;
-```
-
-Then test and reload:
+### MCP Discovery
 
 ```bash
-nginx -t && nginx -s reload
-```
-
-## Testing with curl
-
-```bash
-# Health check
-curl http://localhost:3000/health
-
-# Initialize tools
-curl -X POST http://localhost:3000/init
-
-# List tools
+# List available services
 curl -X POST http://localhost:3000/mcp \
   -H "Content-Type: application/json" \
-  -d '{"jsonrpc":"2.0","method":"tools/list","id":1}'
+  -d '{"jsonrpc": "2.0", "method": "tools/list", "id": 1}'
 
-# Call a tool
+# Get service details
 curl -X POST http://localhost:3000/mcp \
   -H "Content-Type: application/json" \
-  -d '{
-    "jsonrpc":"2.0",
-    "method":"tools/call",
-    "params":{"name":"get_current_time","arguments":{}},
-    "id":2
-  }'
+  -d '{"jsonrpc": "2.0", "method": "tools/call", "params": {"name": "memory_service_card"}, "id": 2}'
 ```
 
-## Integration with Stone Monkey
-
-Register as an MCP server:
+### Direct HTTP Calls
 
 ```bash
-curl -X POST http://localhost:3004/api/mcp/servers/register \
-  -H "Content-Type: application/json" \
-  -d '{
-    "name": "nginx-gateway",
-    "url": "http://localhost:3000/mcp",
-    "transport": "streamablehttp"
-  }'
+# Call operations directly
+curl http://localhost:3000/memory/schema
+curl -X POST http://localhost:3000/memory/semantic -d '{"query": "search term"}'
 ```
 
-Or add to `server_config.json`:
+## Claude Code Integration
+
+Add to your Claude Code MCP settings:
 
 ```json
 {
   "mcpServers": {
-    "nginx-gateway": {
-      "url": "http://localhost:3000/mcp",
-      "transport_type": "http"
+    "my-gateway": {
+      "command": "bun",
+      "args": ["run", "/path/to/mcp-gateway/src/stdio/wrapper.ts"]
     }
   }
 }
 ```
 
-## Benefits
+The gateway must be running before using the wrapper.
 
-1. **No MCP in your code** - Write standard REST APIs
-2. **Test with curl** - Debug without MCP clients
-3. **Declarative tools** - Add tools via YAML config
-4. **NGINX performance** - Battle-tested infrastructure
-5. **Gradual adoption** - Works alongside existing MCP servers
+## Architecture
+
+```
+                    ┌─────────────────────────────┐
+                    │     Bun Gateway (:3000)     │
+                    │                             │
+MCP Client ────────►│  /mcp  → MCP Handler        │
+(HTTP transport)    │         (service discovery) │
+                    │                             │
+Claude Code ───────►│  STDIO Wrapper ─────────────┼──► /mcp
+(STDIO transport)   │  (src/stdio/wrapper.ts)     │
+                    │                             │
+HTTP Client ───────►│  /{service}/{path}          │
+                    │         → Router            │
+                    │         → Service Loader    │
+                    │         → Service Handler   │
+                    └─────────────────────────────┘
+                                  │
+                                  ▼
+                    ┌─────────────────────────────┐
+                    │     services/               │
+                    │     └── memory/             │
+                    │         ├── get_schema.ts   │
+                    │         ├── semantic_search │
+                    │         ├── text_search.ts  │
+                    │         └── execute_cypher  │
+                    └─────────────────────────────┘
+```
+
+## Configuration
+
+### Config File
+
+Create `config/gateway.json`:
+
+```json
+{
+  "gateway": {
+    "info": { "title": "my-gateway", "version": "1.0.0" },
+    "service_card": {
+      "operationId": "gateway",
+      "summary": "Gateway service discovery"
+    }
+  },
+  "services": [{
+    "servers": [{ "url": "http://localhost:3000/memory" }],
+    "service_card": {
+      "operationId": "memory",
+      "summary": "Memory service"
+    },
+    "paths": {
+      "/schema": {
+        "get": {
+          "operationId": "get_schema",
+          "summary": "Get database schema"
+        }
+      }
+    }
+  }]
+}
+```
+
+### Environment Variables
+
+| Variable | Default | Description |
+|----------|---------|-------------|
+| `MCP_CONFIG_PATH` | `./config/gateway.json` | Config file path |
+| `MCP_PORT` | `3000` | Server port |
+| `MCP_SERVICES_DIR` | `./services` | Services directory |
+| `MCP_GATEWAY_URL` | `http://localhost:3000/mcp` | Gateway URL (STDIO wrapper) |
+| `MCP_DEBUG` | `false` | Debug logging (STDIO wrapper) |
+
+## Writing Services
+
+Services are TypeScript files that export a default async function:
+
+```typescript
+// services/memory/semantic_search.ts
+import { getNeo4jService } from "./lib/config";
+
+interface Params {
+  query: string;
+  limit?: number;
+  threshold?: number;
+}
+
+export default async function(params: Params) {
+  const { query, limit = 10, threshold = 0.7 } = params;
+  const service = getNeo4jService();
+
+  const results = await service.semanticSearch(query, ["KnowledgeItem"], "embedding_vectors", limit);
+
+  return { matches: results.filter(r => r.score >= threshold) };
+}
+```
+
+The gateway:
+1. Loads services from `services/{serviceId}/{operationId}.ts`
+2. Routes HTTP requests to the matching service
+3. Passes query params, path params, and body as `params`
+4. Returns the service result as JSON
+
+## MCP Protocol
+
+| Method | Path | Description |
+|--------|------|-------------|
+| GET | `/mcp` | Server info and capabilities |
+| POST | `/mcp` | JSON-RPC 2.0 protocol |
+| GET | `/health` | Health check |
+| GET | `/` | Landing page |
+
+### Supported JSON-RPC Methods
+
+- `initialize` - Initialize MCP connection
+- `tools/list` - List available service cards
+- `tools/call` - Get service details (returns operations)
+- `ping` - Health check
+
+## Development
+
+```bash
+# Run tests
+bun test
+
+# Run specific tests
+bun test tests/config.test.ts
+bun test tests/mcp.test.ts
+```
+
+## License
+
+MIT

@@ -5,15 +5,14 @@ import path from "path";
 const BASE_URL = process.env.MCP_BASE_URL || "http://localhost:3000";
 const CONFIG_PATH =
   process.env.MCP_CONFIG_PATH ||
-  path.join(process.cwd(), "config", "tools.json");
+  path.join(process.cwd(), "config", "gateway.json");
 
 let gatewayUp = false;
 let gatewayReason = "";
-let toolsConfig: any = null;
-let configReason = "";
+let gatewayConfig: any = null;
 
-async function callRpc(path: string, body: unknown) {
-  const res = await fetch(`${BASE_URL}${path}`, {
+async function callRpc(endpoint: string, body: unknown) {
+  const res = await fetch(`${BASE_URL}${endpoint}`, {
     method: "POST",
     headers: { "Content-Type": "application/json" },
     body: JSON.stringify(body),
@@ -22,6 +21,7 @@ async function callRpc(path: string, body: unknown) {
 }
 
 beforeAll(async () => {
+  // Check gateway health
   try {
     const res = await fetch(`${BASE_URL}/health`, { method: "GET" });
     gatewayUp = res.ok;
@@ -33,19 +33,41 @@ beforeAll(async () => {
     gatewayReason = err instanceof Error ? err.message : String(err);
   }
 
+  // Load config
   try {
     const raw = readFileSync(CONFIG_PATH, "utf-8");
-    toolsConfig = JSON.parse(raw);
+    gatewayConfig = JSON.parse(raw);
   } catch (err) {
-    configReason =
-      err instanceof Error ? err.message : `Unable to read ${CONFIG_PATH}`;
+    console.warn(`Could not load config from ${CONFIG_PATH}`);
   }
 });
 
 describe("MCP Gateway", () => {
-  it("lists service_card on /mcp", async () => {
+  it("health check returns healthy", async () => {
     if (!gatewayUp) {
       console.warn(`SKIP: gateway not reachable at ${BASE_URL} (${gatewayReason})`);
+      return;
+    }
+
+    const res = await fetch(`${BASE_URL}/health`);
+    const json = await res.json();
+    expect(json.status).toBe("healthy");
+  });
+
+  it("GET /mcp returns human-readable info", async () => {
+    if (!gatewayUp) {
+      console.warn(`SKIP: gateway not reachable`);
+      return;
+    }
+
+    const res = await fetch(`${BASE_URL}/mcp`);
+    const text = await res.text();
+    expect(text).toContain("Services:");
+  });
+
+  it("tools/list returns only service_cards", async () => {
+    if (!gatewayUp) {
+      console.warn(`SKIP: gateway not reachable`);
       return;
     }
 
@@ -57,112 +79,154 @@ describe("MCP Gateway", () => {
 
     expect(Array.isArray(json.result?.tools)).toBe(true);
     expect(json.result.tools.length).toBeGreaterThan(0);
-    expect(json.result.tools[0].name).toBe("service_card");
+
+    // All tools should be service_cards
+    for (const tool of json.result.tools) {
+      expect(tool.name).toMatch(/service_card$/);
+    }
   });
 
-  it("lists all tools on /mcp/tools", async () => {
+  it("tools/list includes gateway service_card", async () => {
     if (!gatewayUp) {
-      console.warn(`SKIP: gateway not reachable at ${BASE_URL} (${gatewayReason})`);
+      console.warn(`SKIP: gateway not reachable`);
       return;
     }
 
-    const { json } = await callRpc("/mcp/tools", {
+    const { json } = await callRpc("/mcp", {
       jsonrpc: "2.0",
       method: "tools/list",
       id: 2,
     });
 
-    expect(Array.isArray(json.result?.tools)).toBe(true);
-    expect(json.result.tools.length).toBeGreaterThan(1); // more than service_card
+    const gatewayCard = json.result.tools.find((t: any) => t.name === "service_card");
+    expect(gatewayCard).toBeDefined();
   });
 
-  it("calls service_card tool successfully", async () => {
+  it("calling gateway service_card returns service list", async () => {
     if (!gatewayUp) {
-      console.warn(`SKIP: gateway not reachable at ${BASE_URL} (${gatewayReason})`);
+      console.warn(`SKIP: gateway not reachable`);
       return;
     }
 
-    const { json } = await callRpc("/mcp/tools", {
+    const { json } = await callRpc("/mcp", {
       jsonrpc: "2.0",
       method: "tools/call",
-      params: { name: "service_card", arguments: {} },
+      params: { name: "service_card" },
       id: 3,
     });
 
     expect(json.result?.content?.[0]?.type).toBe("text");
-    expect(typeof json.result?.content?.[0]?.text).toBe("string");
+    const text = json.result.content[0].text;
+    expect(text).toContain("Available Services:");
   });
 
-  it("returns validation error for missing required params", async () => {
+  it("calling service-specific service_card returns operations", async () => {
     if (!gatewayUp) {
-      console.warn(`SKIP: gateway not reachable at ${BASE_URL} (${gatewayReason})`);
+      console.warn(`SKIP: gateway not reachable`);
       return;
     }
 
-    const { json } = await callRpc("/mcp/tools", {
+    const { json } = await callRpc("/mcp", {
       jsonrpc: "2.0",
       method: "tools/call",
-      params: { name: "memory_semantic_search", arguments: {} },
+      params: { name: "memory_service_card" },
       id: 4,
     });
 
-    expect(json.error?.code).toBe(-32602);
-    expect(typeof json.error?.message).toBe("string");
+    expect(json.result?.content?.[0]?.type).toBe("text");
+    const text = json.result.content[0].text;
+    const serviceCard = JSON.parse(text);
+    expect(serviceCard.service).toBe("memory");
+    expect(serviceCard.baseUrl).toBeDefined();
+    expect(serviceCard.operations).toBeInstanceOf(Array);
+    expect(serviceCard.operations.length).toBeGreaterThan(0);
+    // Verify structured parameter info is present
+    const firstOp = serviceCard.operations[0];
+    expect(firstOp.operationId).toBeDefined();
+    expect(firstOp.method).toBeDefined();
+    expect(firstOp.path).toBeDefined();
+  });
+
+  it("operations are NOT exposed as MCP tools", async () => {
+    if (!gatewayUp) {
+      console.warn(`SKIP: gateway not reachable`);
+      return;
+    }
+
+    const { json } = await callRpc("/mcp", {
+      jsonrpc: "2.0",
+      method: "tools/list",
+      id: 5,
+    });
+
+    // Operation names like "semantic_search" should not be MCP tools
+    const operationNames = ["semantic_search", "text_search", "get_schema", "execute_cypher"];
+    for (const tool of json.result.tools) {
+      expect(operationNames).not.toContain(tool.name);
+    }
+  });
+
+  it("ping returns empty result", async () => {
+    if (!gatewayUp) {
+      console.warn(`SKIP: gateway not reachable`);
+      return;
+    }
+
+    const { json } = await callRpc("/mcp", {
+      jsonrpc: "2.0",
+      method: "ping",
+      id: 6,
+    });
+
+    expect(json.result).toBeDefined();
+    expect(json.error).toBeUndefined();
   });
 });
 
-describe("Config-driven tool smoke tests", () => {
-  if (!gatewayUp) {
-    console.warn(
-      `SKIP: gateway not reachable at ${BASE_URL} (${gatewayReason})`
-    );
-    return;
-  }
+describe("HTTP Function Routes", () => {
+  it("GET /memory/schema calls function", async () => {
+    if (!gatewayUp) {
+      console.warn(`SKIP: gateway not reachable`);
+      return;
+    }
 
-  if (!toolsConfig) {
-    console.warn(
-      `SKIP: tools config not available at ${CONFIG_PATH} (${configReason})`
-    );
-    return;
-  }
-
-  const tools = Array.isArray(toolsConfig.tools) ? toolsConfig.tools : [];
-
-  // Only exercise tools that (a) have no required params and (b) target the
-  // running memory backend (endpoint starts with /api/nginx-memory).
-  const testableTools = tools.filter((tool) => {
-    if (!tool.backend) return false; // skip internal tools
-    const schema = tool.inputSchema || {};
-    const required = schema.required || [];
-    if (required.length > 0) return false;
-    const endpoint = tool.backend.endpoint || "";
-    return endpoint.startsWith("/api/nginx-memory");
+    const res = await fetch(`${BASE_URL}/memory/schema`);
+    const json = await res.json();
+    // Accept either a real schema or error (Neo4j may not be running)
+    expect(json.labels !== undefined || json.error !== undefined).toBe(true);
   });
 
-  if (testableTools.length === 0) {
-    console.warn(
-      "SKIP: no testable tools without required params for /api/nginx-memory backend"
-    );
-    return;
-  }
+  it("POST /memory/semantic calls function with params", async () => {
+    if (!gatewayUp) {
+      console.warn(`SKIP: gateway not reachable`);
+      return;
+    }
 
-  for (const tool of testableTools) {
-    it(`calls ${tool.name} via MCP using config-driven arguments`, async () => {
-      const { json } = await callRpc("/mcp/tools", {
-        jsonrpc: "2.0",
-        method: "tools/call",
-        params: { name: tool.name, arguments: {} },
-        id: tool.name,
-      });
-
-      // Fail fast if the gateway surfaced an error from the backend
-      if (json.error) {
-        throw new Error(
-          `Tool ${tool.name} returned error: ${json.error.message}`
-        );
-      }
-
-      expect(json.result?.content?.[0]?.type).toBe("text");
+    const res = await fetch(`${BASE_URL}/memory/semantic`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ query: "test", limit: 5 }),
     });
-  }
+    const json = await res.json();
+
+    // Real backend returns results if embedding service is up,
+    // or error message if not. Both are valid responses.
+    if (json.error) {
+      // Expected error when embedding service is unavailable
+      expect(json.error).toContain("embedding");
+    } else {
+      // Success response with results
+      expect(json.results).toBeDefined();
+    }
+  });
+
+  it("unknown route returns 404", async () => {
+    if (!gatewayUp) {
+      console.warn(`SKIP: gateway not reachable`);
+      return;
+    }
+
+    const res = await fetch(`${BASE_URL}/unknown/route`);
+    expect(res.status).toBe(404);
+  });
 });

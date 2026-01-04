@@ -1,12 +1,12 @@
 /**
- * Text Search Function
+ * Text Search
  *
  * Full-text search with optional fuzzy matching.
  */
 
-import { getNeo4jService } from "../lib/config";
+import { getNeo4jService } from "./lib/config";
 
-interface TextSearchArgs {
+interface Params {
   query: string;
   node_types?: string[];
   properties?: string[];
@@ -14,16 +14,14 @@ interface TextSearchArgs {
   limit?: number;
 }
 
-export async function textSearch(
-  args: Record<string, unknown>
-): Promise<unknown> {
+export default async function(params: Record<string, unknown>) {
   const {
     query,
     node_types = [],
     properties = [],
     fuzzy = false,
     limit = 10,
-  } = args as TextSearchArgs;
+  } = params as Params;
 
   if (!query) {
     throw new Error("Missing required parameter: query");

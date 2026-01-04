@@ -2,17 +2,17 @@
 /**
  * STDIO Transport Wrapper for MCP Gateway
  *
- * Bridges STDIO transport (used by Claude Code) to HTTP transport (NGINX gateway).
- * Reads JSON-RPC lines from stdin, POSTs to NGINX, writes responses to stdout.
+ * Bridges STDIO transport (used by Claude Code) to HTTP transport.
+ * Reads JSON-RPC lines from stdin, POSTs to the gateway, writes responses to stdout.
  *
  * Usage:
- *   bun run stdio/wrapper.ts
+ *   bun run src/stdio/wrapper.ts
  *
  * Or in Claude Code settings:
  *   "mcpServers": {
- *     "stone-monkey": {
+ *     "my-gateway": {
  *       "command": "bun",
- *       "args": ["run", "/path/to/nginx-mcp-gateway/stdio/wrapper.ts"]
+ *       "args": ["run", "/path/to/mcp-gateway/src/stdio/wrapper.ts"]
  *     }
  *   }
  */

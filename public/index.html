@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Project Stone Monkey - MCP Gateway</title>
+    <title>MCP Gateway</title>
     <style>
         * {
             margin: 0;
@@ -125,8 +125,8 @@
 </head>
 <body>
     <div class="container">
-        <h1>Project Stone Monkey</h1>
-        <p class="subtitle">NGINX MCP Gateway</p>
+        <h1>MCP Gateway</h1>
+        <p class="subtitle">Service Discovery & Routing</p>
 
         <div class="status">Gateway Online</div>
 
@@ -137,22 +137,22 @@
                 <div class="endpoint-desc">Health check endpoint</div>
             </div>
             <div class="endpoint">
+                <span class="endpoint-method method-get">GET</span>
+                <span class="endpoint-path">/mcp</span>
+                <div class="endpoint-desc">MCP server info and capabilities</div>
+            </div>
+            <div class="endpoint">
                 <span class="endpoint-method method-post">POST</span>
                 <span class="endpoint-path">/mcp</span>
                 <div class="endpoint-desc">MCP JSON-RPC endpoint (tools/list, tools/call)</div>
             </div>
-            <div class="endpoint">
-                <span class="endpoint-method method-get">GET</span>
-                <span class="endpoint-path">/init</span>
-                <div class="endpoint-desc">Reload tool configuration</div>
-            </div>
         </div>
 
-        <p class="tools-count" id="tools-count">Loading tools...</p>
+        <p class="tools-count" id="tools-count">Loading services...</p>
     </div>
 
     <footer>
-        <a href="https://github.com/symagenic/ProjectStoneMonkey">github.com/symagenic/ProjectStoneMonkey</a>
+        <a href="https://github.com/your-org/mcp-gateway">mcp-gateway</a>
     </footer>
 
     <script>
@@ -165,10 +165,10 @@
         .then(data => {
             const count = data.result?.tools?.length || 0;
             document.getElementById('tools-count').innerHTML =
-                `<span>${count}</span> tools available`;
+                `<span>${count}</span> services available`;
         })
         .catch(() => {
-            document.getElementById('tools-count').textContent = 'Could not load tools';
+            document.getElementById('tools-count').textContent = 'Could not load services';
         });
     </script>
 </body>

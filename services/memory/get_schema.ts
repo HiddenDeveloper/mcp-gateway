@@ -1,19 +1,17 @@
 /**
- * Get Schema Function
+ * Get Schema
  *
  * Returns the Neo4j database schema with optional statistics.
  */
 
-import { getNeo4jService, config } from "../lib/config";
+import { getNeo4jService, config } from "./lib/config";
 
-interface GetSchemaArgs {
+interface Params {
   include_statistics?: boolean;
 }
 
-export async function getSchema(
-  args: Record<string, unknown>
-): Promise<unknown> {
-  const { include_statistics = false } = args as GetSchemaArgs;
+export default async function(params: Record<string, unknown>) {
+  const { include_statistics = false } = params as Params;
 
   const service = getNeo4jService();
 
@@ -42,7 +40,7 @@ export async function getSchema(
           );
           nodeCounts[label] = countResult[0]?.count?.toNumber?.() || countResult[0]?.count || 0;
         } catch {
-          nodeCounts[label] = -1; // Error getting count
+          nodeCounts[label] = -1;
         }
       }
 

@@ -1,6 +1,5 @@
-# Generated files
-config/tools.json
-nginx/conf.d/mcp-gateway.conf
+# Runtime config (users create their own)
+config/
 
 # Environment (contains secrets)
 .env
@@ -23,3 +22,6 @@ node_modules/
 
 # Test artifacts
 coverage/
+
+# Bun
+bun.lockb

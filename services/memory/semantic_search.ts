@@ -1,22 +1,20 @@
 /**
- * Semantic Search Function
+ * Semantic Search
  *
  * Searches memory using vector similarity.
  */
 
-import { getNeo4jService } from "../lib/config";
+import { getNeo4jService } from "./lib/config";
 
-interface SemanticSearchArgs {
+interface Params {
   query: string;
   limit?: number;
   threshold?: number;
   node_types?: string[];
 }
 
-export async function semanticSearch(
-  args: Record<string, unknown>
-): Promise<unknown> {
-  const { query, limit = 10, threshold = 0.7, node_types } = args as SemanticSearchArgs;
+export default async function(params: Record<string, unknown>) {
+  const { query, limit = 10, threshold = 0.7, node_types } = params as Params;
 
   if (!query) {
     throw new Error("Missing required parameter: query");

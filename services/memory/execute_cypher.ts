@@ -1,23 +1,21 @@
 /**
- * Execute Cypher Function
+ * Execute Cypher
  *
  * Executes a Cypher query with READ/WRITE mode control.
  * This is the core function that enables LLM memory curation.
  */
 
-import { getNeo4jService, config } from "../lib/config";
+import { getNeo4jService, config } from "./lib/config";
 
-interface ExecuteCypherArgs {
+interface Params {
   query: string;
   mode: "READ" | "WRITE";
   parameters?: Record<string, unknown>;
   client_schema_epoch?: number;
 }
 
-export async function executeCypher(
-  args: Record<string, unknown>
-): Promise<unknown> {
-  const { query, mode, parameters = {}, client_schema_epoch } = args as ExecuteCypherArgs;
+export default async function(params: Record<string, unknown>) {
+  const { query, mode, parameters = {}, client_schema_epoch } = params as Params;
 
   if (!query) {
     throw new Error("Missing required parameter: query");

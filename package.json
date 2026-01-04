@@ -1,6 +1,35 @@
 {
-  "dependencies": {
-    "neo4j-driver": "^6.0.1",
-    "yaml": "^2.8.2"
+  "name": "mcp-gateway",
+  "version": "0.1.0",
+  "description": "A Bun-based gateway that exposes services via MCP protocol for discovery and routes HTTP requests to user-defined functions",
+  "type": "module",
+  "main": "src/gateway.ts",
+  "bin": {
+    "mcp-gateway": "src/gateway.ts"
+  },
+  "scripts": {
+    "start": "bun run src/gateway.ts",
+    "dev": "bun --watch run src/gateway.ts",
+    "test": "bun test"
+  },
+  "keywords": [
+    "mcp",
+    "model-context-protocol",
+    "gateway",
+    "api",
+    "bun"
+  ],
+  "author": "",
+  "license": "MIT",
+  "engines": {
+    "bun": ">=1.0.0"
+  },
+  "files": [
+    "src",
+    "README.md"
+  ],
+  "devDependencies": {
+    "ajv": "^8.17.1",
+    "ajv-formats": "^3.0.1"
   }
 }
