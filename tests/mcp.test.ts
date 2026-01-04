@@ -230,3 +230,69 @@ describe("HTTP Function Routes", () => {
     expect(res.status).toBe(404);
   });
 });
+
+describe("Mesh Service", () => {
+  it("mesh_service_card returns structured JSON", async () => {
+    if (!gatewayUp) {
+      console.warn(`SKIP: gateway not reachable`);
+      return;
+    }
+
+    const { json } = await callRpc("/mcp", {
+      jsonrpc: "2.0",
+      method: "tools/call",
+      params: { name: "mesh_service_card" },
+      id: 10,
+    });
+
+    expect(json.result?.content?.[0]?.type).toBe("text");
+    const serviceCard = JSON.parse(json.result.content[0].text);
+    expect(serviceCard.service).toBe("mesh");
+    expect(serviceCard.operations).toBeInstanceOf(Array);
+    expect(serviceCard.operations.length).toBe(2);
+
+    // Verify broadcast operation
+    const broadcast = serviceCard.operations.find((op: any) => op.operationId === "broadcast");
+    expect(broadcast).toBeDefined();
+    expect(broadcast.method).toBe("POST");
+    expect(broadcast.parameters.find((p: any) => p.name === "content").required).toBe(true);
+
+    // Verify get_messages operation
+    const getMessages = serviceCard.operations.find((op: any) => op.operationId === "get_messages");
+    expect(getMessages).toBeDefined();
+    expect(getMessages.method).toBe("GET");
+  });
+
+  it("POST /mesh/broadcast sends message", async () => {
+    if (!gatewayUp) {
+      console.warn(`SKIP: gateway not reachable`);
+      return;
+    }
+
+    const res = await fetch(`${BASE_URL}/mesh/broadcast`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ content: "Test message from bun test", to: "ALL" }),
+    });
+    const json = await res.json();
+
+    expect(json.success).toBe(true);
+    expect(json.message.id).toBeDefined();
+    expect(json.message.from).toBeDefined();
+    expect(json.message.to).toBe("ALL");
+  });
+
+  it("GET /mesh/messages retrieves inbox", async () => {
+    if (!gatewayUp) {
+      console.warn(`SKIP: gateway not reachable`);
+      return;
+    }
+
+    const res = await fetch(`${BASE_URL}/mesh/messages?include_read=true`);
+    const json = await res.json();
+
+    expect(json.sessionId).toBeDefined();
+    expect(json.messages).toBeInstanceOf(Array);
+    expect(json.count).toBeGreaterThanOrEqual(0);
+  });
+});
