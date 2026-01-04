@@ -566,32 +566,126 @@ describe("Orchestrator Service", () => {
     expect(opIds).toContain("admin_mcp_list");
   });
 
-  it("GET /orchestrator/agents/list routes correctly", async () => {
-    if (skipIfDown()) return;
-
-    const res = await fetch(`${BASE_URL}/orchestrator/agents/list`);
-    // May fail if Bridge not running, but route should work
-    expect(res.status).not.toBe(404);
-  });
-
-  it("GET /orchestrator/chat/status routes correctly", async () => {
+  it("GET /orchestrator/chat/status returns health info", async () => {
     if (skipIfDown()) return;
 
     const res = await fetch(`${BASE_URL}/orchestrator/chat/status`);
-    expect(res.status).not.toBe(404);
+    const json = await res.json();
+
+    expect(json.service).toBe("orchestrator");
+    expect(json.healthy).toBe(true);
+    expect(json.agents).toBeDefined();
+    expect(json.agents.count).toBeGreaterThan(0);
+    expect(json.services).toBeDefined();
+    expect(json.services.names).toContain("memory");
+    expect(json.services.names).toContain("mesh");
+    expect(json.services.names).toContain("recall");
   });
 
-  it("GET /orchestrator/protocols/list routes correctly", async () => {
+  it("GET /orchestrator/agents/list returns agent summaries", async () => {
+    if (skipIfDown()) return;
+
+    const res = await fetch(`${BASE_URL}/orchestrator/agents/list`);
+    const json = await res.json();
+
+    expect(json.agents).toBeInstanceOf(Array);
+    expect(json.count).toBeGreaterThan(0);
+
+    // Verify agent summary structure
+    const agent = json.agents[0];
+    expect(agent.name).toBeDefined();
+    expect(agent.description).toBeDefined();
+    expect(typeof agent.function_count).toBe("number");
+    expect(typeof agent.agent_count).toBe("number");
+    expect(typeof agent.mcp_tool_count).toBe("number");
+    expect(typeof agent.total_tools).toBe("number");
+    expect(agent.mcp_servers).toBeInstanceOf(Array);
+  });
+
+  it("POST /orchestrator/agents/get returns agent details", async () => {
+    if (skipIfDown()) return;
+
+    // First get list to find an agent name
+    const listRes = await fetch(`${BASE_URL}/orchestrator/agents/list`);
+    const listJson = await listRes.json();
+    const agentName = listJson.agents[0].name;
+
+    // Get agent details
+    const res = await fetch(`${BASE_URL}/orchestrator/agents/get`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ agent_name: agentName }),
+    });
+    const json = await res.json();
+
+    expect(json.name).toBe(agentName);
+    expect(json.description).toBeDefined();
+    expect(json.tools).toBeInstanceOf(Array);
+  });
+
+  it("POST /orchestrator/agents/search returns ranked results", async () => {
+    if (skipIfDown()) return;
+
+    const res = await fetch(`${BASE_URL}/orchestrator/agents/search`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ query: "memory", limit: 5 }),
+    });
+    const json = await res.json();
+
+    expect(json.query).toBe("memory");
+    expect(json.results).toBeInstanceOf(Array);
+    expect(json.count).toBeLessThanOrEqual(5);
+    expect(json.total_agents).toBeGreaterThan(0);
+
+    // Verify search results have scores
+    if (json.results.length > 0) {
+      expect(typeof json.results[0].score).toBe("number");
+      expect(json.results[0].match_reasons).toBeInstanceOf(Array);
+    }
+  });
+
+  it("POST /orchestrator/agents/tools/list returns tool schemas", async () => {
+    if (skipIfDown()) return;
+
+    // First get list to find an agent with tools
+    const listRes = await fetch(`${BASE_URL}/orchestrator/agents/list`);
+    const listJson = await listRes.json();
+    const agentWithTools = listJson.agents.find((a: any) => a.total_tools > 0);
+
+    if (!agentWithTools) {
+      console.log("No agents with tools found, skipping");
+      return;
+    }
+
+    const res = await fetch(`${BASE_URL}/orchestrator/agents/tools/list`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ agent_name: agentWithTools.name }),
+    });
+    const json = await res.json();
+
+    expect(json.agent_name).toBe(agentWithTools.name);
+    expect(json.tools).toBeInstanceOf(Array);
+    expect(json.count).toBeGreaterThan(0);
+
+    // Verify tool schema structure
+    const tool = json.tools[0];
+    expect(tool.name).toBeDefined();
+    expect(tool.description).toBeDefined();
+    expect(tool.inputSchema).toBeDefined();
+    expect(tool.inputSchema.type).toBe("object");
+  });
+
+  it("GET /orchestrator/protocols/list returns stub response", async () => {
     if (skipIfDown()) return;
 
     const res = await fetch(`${BASE_URL}/orchestrator/protocols/list`);
-    expect(res.status).not.toBe(404);
-  });
+    const json = await res.json();
 
-  it("GET /orchestrator/admin/mcp/list routes correctly", async () => {
-    if (skipIfDown()) return;
-
-    const res = await fetch(`${BASE_URL}/orchestrator/admin/mcp/list`);
-    expect(res.status).not.toBe(404);
+    // Phase 1 returns stub
+    expect(json.protocols).toBeInstanceOf(Array);
+    expect(json.count).toBe(0);
+    expect(json.message).toContain("Phase 2");
   });
 });
