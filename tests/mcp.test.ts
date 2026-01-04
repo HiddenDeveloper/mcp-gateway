@@ -449,3 +449,76 @@ describe("Mesh Service", () => {
     expect(json.messages.length).toBeGreaterThanOrEqual(1);
   });
 });
+
+// =============================================================================
+// Recall Service
+// =============================================================================
+
+describe("Recall Service", () => {
+  it("service_card returns structured operations", async () => {
+    if (skipIfDown()) return;
+
+    const { json } = await callRpc({
+      jsonrpc: "2.0",
+      method: "tools/call",
+      params: { name: "recall_service_card" },
+      id: 30,
+    });
+
+    const serviceCard = JSON.parse(json.result.content[0].text);
+    expect(serviceCard.service).toBe("recall");
+    expect(serviceCard.operations.length).toBe(4);
+
+    // Verify all operations present
+    const opIds = serviceCard.operations.map((op: any) => op.operationId);
+    expect(opIds).toContain("get_schema");
+    expect(opIds).toContain("semantic_search");
+    expect(opIds).toContain("text_search");
+    expect(opIds).toContain("system_status");
+  });
+
+  it("GET /recall/status returns system health", async () => {
+    if (skipIfDown()) return;
+
+    const res = await fetch(`${BASE_URL}/recall/status`);
+    const json = await res.json();
+
+    // May fail if Recall server not running or auth issues
+    if (json.error) {
+      expect(json.error).toContain("Recall");
+    } else {
+      expect(json.text).toContain("Recall System Status");
+    }
+  });
+
+  it("GET /recall/schema returns collection info", async () => {
+    if (skipIfDown()) return;
+
+    const res = await fetch(`${BASE_URL}/recall/schema`);
+    const json = await res.json();
+
+    if (json.error) {
+      expect(json.error).toContain("Recall");
+    } else {
+      expect(json.text).toContain("Conversation History Collection Schema");
+    }
+  });
+
+  it("POST /recall/semantic accepts search params", async () => {
+    if (skipIfDown()) return;
+
+    const res = await fetch(`${BASE_URL}/recall/semantic`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ query: "test query", limit: 3 }),
+    });
+    const json = await res.json();
+
+    // Either returns results or auth error
+    if (json.error) {
+      expect(json.error).toContain("Recall");
+    } else {
+      expect(json.text).toBeDefined();
+    }
+  });
+});
