@@ -129,3 +129,5 @@ The rest, they'll figure out themselves.
 ---
 
 *MCP Gateway implements this pattern. Service cards as MCP tools, operations as HTTP endpoints. The gap is closed.*
+
+*Note: The example services in the repository (memory, mesh, recall, orchestrator) are works in progress demonstrating the pattern. The gateway itself is stable and ready for use with your own services.*

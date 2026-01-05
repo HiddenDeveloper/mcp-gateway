@@ -42,6 +42,8 @@ The agent autonomously explores and understands the API surface, just like a bro
 - **STDIO Transport**: Connect Claude Code directly via STDIO wrapper
 - **Zero Dependencies**: Pure Bun, no external runtime dependencies
 
+> **Note**: The `services/` directory contains example implementations (memory, mesh, recall, orchestrator) that demonstrate the gateway pattern. These are works in progress and require external backends (Neo4j, embedding service). The gateway itself is stable—use it with your own services.
+
 ## Quick Start
 
 ```bash
