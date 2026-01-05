@@ -73,7 +73,7 @@ The solution is simple: let servers describe themselves.
 
 A **service card** is an MCP tool that returns structured metadata about an HTTP service—what it does, what endpoints it has, what parameters they accept.
 
-```
+```text
 Agent                          Gateway
   │                               │
   ├── tools/list ────────────────►│
@@ -94,7 +94,7 @@ Context stays small. Capabilities stay large. The AI navigates like a browser ex
 
 ## It Works
 
-We tested this with Gemini. Initial attempts failed—it tried to call HTTP endpoints as MCP tools, got confused about the protocol boundary.
+We tested this with Claude and Gemini. Initial attempts failed—it tried to call HTTP endpoints as MCP tools, got confused about the protocol boundary.
 
 Then we added a `_meta` section to service cards explaining the pattern:
 

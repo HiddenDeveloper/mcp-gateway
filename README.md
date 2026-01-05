@@ -194,6 +194,7 @@ export default async function(params: Params) {
 ```
 
 The gateway:
+
 1. Loads services from `services/{serviceId}/{operationId}.ts`
 2. Routes HTTP requests to the matching service
 3. Passes query params, path params, and body as `params`
