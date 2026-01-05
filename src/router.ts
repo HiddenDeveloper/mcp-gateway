@@ -101,6 +101,35 @@ export async function createRouter(config: GatewayConfig) {
         const contentType = req.headers.get("content-type");
         if (contentType?.includes("application/json")) {
           body = await req.json();
+
+          // Detect MCP/JSON-RPC style requests and educate the caller
+          if (isMCPStyleRequest(body)) {
+            return Response.json({
+              error: "MCP_PROTOCOL_MISMATCH",
+              message: "This is an HTTP API endpoint, not an MCP tool.",
+              explanation: "You appear to be sending an MCP/JSON-RPC request to an HTTP endpoint. " +
+                "The service_card MCP tools describe HTTP APIs that should be called directly via HTTP.",
+              correct_usage: {
+                endpoint: `${url.origin}${url.pathname}`,
+                method: route.method,
+                content_type: "application/json",
+                body_format: "Direct JSON parameters, not JSON-RPC wrapped",
+                example: {
+                  wrong: { jsonrpc: "2.0", method: "tools/call", params: { name: route.operation.operationId } },
+                  right: route.operation.requestBody?.content?.["application/json"]?.schema?.properties
+                    ? Object.fromEntries(
+                        Object.entries(route.operation.requestBody.content["application/json"].schema.properties)
+                          .map(([k, v]: [string, any]) => [k, v.example || `<${v.type}>`])
+                      )
+                    : { query: "<your query>", limit: 10 }
+                }
+              },
+              hint: "MCP is for discovery (service_card tools). HTTP is for execution (the operations listed in service cards)."
+            }, {
+              status: 400,
+              headers: { "Access-Control-Allow-Origin": "*" }
+            });
+          }
         }
       }
 
@@ -144,4 +173,41 @@ function pathToRegex(path: string): { patternStr: string; params: string[] } {
   });
 
   return { patternStr, params };
+}
+
+/**
+ * Detect if a request body looks like an MCP/JSON-RPC request
+ * This catches cases where an AI tries to call HTTP APIs as MCP tools
+ */
+function isMCPStyleRequest(body: unknown): boolean {
+  if (typeof body !== "object" || body === null) {
+    return false;
+  }
+
+  const obj = body as Record<string, unknown>;
+
+  // Check for JSON-RPC 2.0 format
+  if (obj.jsonrpc === "2.0") {
+    return true;
+  }
+
+  // Check for MCP-style method calls
+  if (typeof obj.method === "string" && obj.method.includes("/")) {
+    return true;
+  }
+
+  // Check for tools/call structure
+  if (obj.method === "tools/call" || obj.method === "tools/list") {
+    return true;
+  }
+
+  // Check for params.name pattern (MCP tool invocation)
+  if (obj.params && typeof obj.params === "object") {
+    const params = obj.params as Record<string, unknown>;
+    if (typeof params.name === "string" && typeof params.arguments === "object") {
+      return true;
+    }
+  }
+
+  return false;
 }

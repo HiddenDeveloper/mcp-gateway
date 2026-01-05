@@ -1,10 +1,9 @@
 /**
- * Register MCP Server
+ * Register MCP Server (Admin)
  *
- * Register a new MCP server with the bridge.
+ * In the standalone gateway, services are defined in the config file.
+ * Dynamic registration is not supported - update gateway.json instead.
  */
-
-import { callBridgeTool } from "./lib/config";
 
 interface RegisterMCPParams {
   name: string;
@@ -14,7 +13,7 @@ interface RegisterMCPParams {
 }
 
 export default async function (params: Record<string, unknown>) {
-  const { name, url, bearer_token, transport } = params as RegisterMCPParams;
+  const { name, url } = params as RegisterMCPParams;
 
   if (!name) {
     throw new Error("Missing required parameter: name");
@@ -23,16 +22,13 @@ export default async function (params: Record<string, unknown>) {
     throw new Error("Missing required parameter: url");
   }
 
-  try {
-    const result = await callBridgeTool("admin_register_mcp_server", {
-      name,
-      url,
-      ...(bearer_token && { bearer_token }),
-      ...(transport && { transport }),
-    });
-    return result;
-  } catch (error) {
-    console.error("[orchestrator/admin/mcp_register] Error:", error);
-    throw error;
-  }
+  // In the standalone gateway, services are defined in config
+  return {
+    status: "not_supported",
+    message: "Dynamic MCP server registration is not supported in standalone mode. Add services to config/gateway.json instead.",
+    suggestion: {
+      file: "config/gateway.json",
+      action: "Add a new service entry to the 'services' array",
+    },
+  };
 }

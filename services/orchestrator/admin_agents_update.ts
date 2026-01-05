@@ -1,10 +1,12 @@
 /**
- * Update Agent
+ * Update Agent (Admin)
  *
  * Update an existing agent configuration.
+ *
+ * Standalone implementation - no external dependencies.
  */
 
-import { callBridgeTool } from "./lib/config";
+import { updateAgent, buildAgentDetails } from "./lib/agent-loader";
 
 interface UpdateAgentParams {
   agent_name: string;
@@ -24,11 +26,12 @@ export default async function (params: Record<string, unknown>) {
   }
 
   try {
-    const result = await callBridgeTool("admin_update_agent", {
-      agent_name,
-      ...updates,
-    });
-    return result;
+    const agent = await updateAgent(agent_name, updates);
+
+    return {
+      status: "updated",
+      agent: buildAgentDetails(agent_name, agent),
+    };
   } catch (error) {
     console.error("[orchestrator/admin/agents_update] Error:", error);
     throw error;

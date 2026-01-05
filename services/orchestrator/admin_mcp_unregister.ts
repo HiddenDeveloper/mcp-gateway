@@ -1,10 +1,9 @@
 /**
- * Unregister MCP Server
+ * Unregister MCP Server (Admin)
  *
- * Remove an MCP server from the bridge.
+ * In the standalone gateway, services are defined in the config file.
+ * Dynamic unregistration is not supported - update gateway.json instead.
  */
-
-import { callBridgeTool } from "./lib/config";
 
 interface UnregisterMCPParams {
   name: string;
@@ -17,11 +16,13 @@ export default async function (params: Record<string, unknown>) {
     throw new Error("Missing required parameter: name");
   }
 
-  try {
-    const result = await callBridgeTool("admin_unregister_mcp_server", { name });
-    return result;
-  } catch (error) {
-    console.error("[orchestrator/admin/mcp_unregister] Error:", error);
-    throw error;
-  }
+  // In the standalone gateway, services are defined in config
+  return {
+    status: "not_supported",
+    message: "Dynamic MCP server unregistration is not supported in standalone mode. Remove services from config/gateway.json instead.",
+    suggestion: {
+      file: "config/gateway.json",
+      action: "Remove the service entry from the 'services' array",
+    },
+  };
 }

@@ -1,15 +1,21 @@
 /**
  * List Protocols (Admin)
  *
- * List all protocol definitions.
+ * List all protocol definitions with full details.
+ *
+ * Standalone implementation - no external dependencies.
  */
 
-import { callBridgeTool } from "./lib/config";
+import { listProtocols } from "./lib/protocol-executor";
 
 export default async function (_params: Record<string, unknown>) {
   try {
-    const result = await callBridgeTool("admin_list_protocols", {});
-    return result;
+    const protocols = await listProtocols();
+
+    return {
+      protocols,
+      count: protocols.length,
+    };
   } catch (error) {
     console.error("[orchestrator/admin/protocols_list] Error:", error);
     throw error;

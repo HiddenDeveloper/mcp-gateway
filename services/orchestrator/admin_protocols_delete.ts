@@ -2,9 +2,11 @@
  * Delete Protocol (Admin)
  *
  * Delete a protocol definition.
+ *
+ * Standalone implementation - no external dependencies.
  */
 
-import { callBridgeTool } from "./lib/config";
+import { deleteProtocol } from "./lib/protocol-executor";
 
 interface DeleteProtocolParams {
   protocol_name: string;
@@ -18,8 +20,12 @@ export default async function (params: Record<string, unknown>) {
   }
 
   try {
-    const result = await callBridgeTool("admin_delete_protocol", { protocol_name });
-    return result;
+    await deleteProtocol(protocol_name);
+
+    return {
+      status: "deleted",
+      protocol_name,
+    };
   } catch (error) {
     console.error("[orchestrator/admin/protocols_delete] Error:", error);
     throw error;

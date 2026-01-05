@@ -2,40 +2,54 @@
  * Create Protocol (Admin)
  *
  * Create a new protocol definition.
+ *
+ * Standalone implementation - no external dependencies.
  */
 
-import { callBridgeTool } from "./lib/config";
+import { createProtocol, type Protocol } from "./lib/protocol-executor";
 
 interface CreateProtocolParams {
   name: string;
-  description: string;
-  steps: Array<{
-    agent: string;
-    instruction: string;
-    output_key?: string;
+  version?: string;
+  description?: string;
+  phases: Array<{
+    name: string;
+    description?: string;
+    steps: Array<{
+      name: string;
+      tool: string;
+      arguments: Record<string, unknown>;
+      output_key?: string;
+    }>;
   }>;
 }
 
 export default async function (params: Record<string, unknown>) {
-  const { name, description, steps } = params as CreateProtocolParams;
+  const { name, version, description, phases } = params as CreateProtocolParams;
 
   if (!name) {
     throw new Error("Missing required parameter: name");
   }
-  if (!description) {
-    throw new Error("Missing required parameter: description");
-  }
-  if (!steps || !Array.isArray(steps)) {
-    throw new Error("Missing required parameter: steps (array)");
+  if (!phases || !Array.isArray(phases)) {
+    throw new Error("Missing required parameter: phases (array)");
   }
 
   try {
-    const result = await callBridgeTool("admin_create_protocol", {
-      name,
-      description,
-      steps,
-    });
-    return result;
+    const protocol: Protocol = {
+      metadata: {
+        name,
+        version: version || "1.0.0",
+        description,
+      },
+      phases,
+    };
+
+    await createProtocol(protocol);
+
+    return {
+      status: "created",
+      protocol_name: name,
+    };
   } catch (error) {
     console.error("[orchestrator/admin/protocols_create] Error:", error);
     throw error;

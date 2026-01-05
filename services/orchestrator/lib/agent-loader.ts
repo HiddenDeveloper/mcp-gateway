@@ -5,7 +5,7 @@
  * Compatible with ProjectStoneMonkey agents.json format.
  */
 
-import { readFile } from "fs/promises";
+import { readFile, writeFile } from "fs/promises";
 import { AGENTS_CONFIG_PATH, AGENT_CACHE_TTL } from "./config";
 import { getServiceRegistry } from "./service-registry";
 import type { AgentConfig, AgentsConfig, AgentSummary, AgentDetails } from "./types";
@@ -249,4 +249,101 @@ export async function listAgentSummaries(
   }
 
   return summaries;
+}
+
+// ============================================================================
+// Agent CRUD Operations
+// ============================================================================
+
+/**
+ * Save agents to file
+ */
+async function saveAgents(agents: Map<string, AgentConfig>): Promise<void> {
+  const data: AgentsConfig = {};
+  for (const [key, config] of agents) {
+    data[key] = config;
+  }
+  await writeFile(AGENTS_CONFIG_PATH, JSON.stringify(data, null, 2), "utf-8");
+  console.log(`[AgentLoader] Saved ${agents.size} agents to: ${AGENTS_CONFIG_PATH}`);
+}
+
+/**
+ * Create a new agent
+ */
+export async function createAgent(
+  name: string,
+  config: Omit<AgentConfig, "name">
+): Promise<AgentConfig> {
+  const agents = await getAgents();
+
+  if (agents.has(name)) {
+    throw new Error(`Agent already exists: ${name}`);
+  }
+
+  const newAgent: AgentConfig = {
+    ...config,
+    name,
+    assigned_functions: config.assigned_functions || [],
+    assigned_agents: config.assigned_agents || [],
+    assigned_mcp_servers: config.assigned_mcp_servers || [],
+  };
+
+  agents.set(name, newAgent);
+  await saveAgents(agents);
+
+  // Update cache
+  agentCache = agents;
+  lastLoadTime = Date.now();
+
+  return newAgent;
+}
+
+/**
+ * Update an existing agent
+ */
+export async function updateAgent(
+  name: string,
+  updates: Partial<AgentConfig>
+): Promise<AgentConfig> {
+  const agents = await getAgents();
+  const existing = agents.get(name);
+
+  if (!existing) {
+    throw new Error(`Agent not found: ${name}`);
+  }
+
+  const updated: AgentConfig = {
+    ...existing,
+    ...updates,
+    name, // Keep original name
+  };
+
+  agents.set(name, updated);
+  await saveAgents(agents);
+
+  // Update cache
+  agentCache = agents;
+  lastLoadTime = Date.now();
+
+  return updated;
+}
+
+/**
+ * Delete an agent
+ */
+export async function deleteAgent(name: string): Promise<boolean> {
+  const agents = await getAgents();
+
+  if (!agents.has(name)) {
+    throw new Error(`Agent not found: ${name}`);
+  }
+
+  agents.delete(name);
+  await saveAgents(agents);
+
+  // Update cache
+  agentCache = agents;
+  lastLoadTime = Date.now();
+
+  return true;
 }

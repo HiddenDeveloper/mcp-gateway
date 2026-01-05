@@ -1,26 +1,34 @@
 /**
  * List Protocols
  *
- * List available multi-agent workflow patterns.
- * Currently returns a stub - full implementation deferred to Phase 2.
+ * List available workflow protocols from the protocols directory.
+ *
+ * Standalone implementation - no external dependencies.
  */
 
+import { listProtocols } from "./lib/protocol-executor";
 import type { ProtocolsListParams } from "./lib/types";
 
 export default async function (params: Record<string, unknown>) {
   const { category } = params as ProtocolsListParams;
 
   try {
-    // Stub implementation - returns empty list
-    // Full implementation will load from config/protocols/ directory
+    let protocols = await listProtocols();
 
-    console.log("[orchestrator/protocols_list] Returning stub (Phase 2 implementation pending)");
+    // Filter by category if specified
+    if (category) {
+      protocols = protocols.filter(p => p.category === category);
+    }
 
     return {
-      protocols: [],
-      count: 0,
-      message: "Protocol execution is not yet implemented. This is a Phase 2 feature.",
-      ...(category && { filtered_by: category }),
+      protocols: protocols.map(p => ({
+        name: p.name,
+        version: p.version,
+        description: p.description,
+        category: p.category,
+        tags: p.tags,
+      })),
+      count: protocols.length,
     };
   } catch (error) {
     console.error("[orchestrator/protocols_list] Error:", error);

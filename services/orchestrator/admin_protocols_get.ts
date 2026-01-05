@@ -1,10 +1,12 @@
 /**
  * Get Protocol (Admin)
  *
- * Get a protocol definition.
+ * Get a protocol definition with full details.
+ *
+ * Standalone implementation - no external dependencies.
  */
 
-import { callBridgeTool } from "./lib/config";
+import { loadProtocol } from "./lib/protocol-executor";
 
 interface GetProtocolParams {
   protocol_name: string;
@@ -18,8 +20,27 @@ export default async function (params: Record<string, unknown>) {
   }
 
   try {
-    const result = await callBridgeTool("admin_get_protocol", { protocol_name });
-    return result;
+    // Add extension if not present
+    const protocolPath = protocol_name.includes(".")
+      ? protocol_name
+      : `${protocol_name}.yaml`;
+
+    const protocol = await loadProtocol(protocolPath);
+
+    return {
+      metadata: protocol.metadata,
+      variables: protocol.variables,
+      phases: protocol.phases.map(phase => ({
+        name: phase.name,
+        description: phase.description,
+        steps_count: phase.steps.length,
+        steps: phase.steps.map(step => ({
+          name: step.name,
+          tool: step.tool,
+          output_key: step.output_key,
+        })),
+      })),
+    };
   } catch (error) {
     console.error("[orchestrator/admin/protocols_get] Error:", error);
     throw error;

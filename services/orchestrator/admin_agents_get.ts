@@ -1,10 +1,12 @@
 /**
- * Get Agent Config
+ * Get Agent Config (Admin)
  *
- * Get full agent configuration (admin view).
+ * Get full agent configuration with all details.
+ *
+ * Standalone implementation - no external dependencies.
  */
 
-import { callBridgeTool } from "./lib/config";
+import { getAgent, buildAgentDetails } from "./lib/agent-loader";
 
 interface GetAgentParams {
   agent_name: string;
@@ -18,8 +20,21 @@ export default async function (params: Record<string, unknown>) {
   }
 
   try {
-    const result = await callBridgeTool("admin_get_agent_config", { agent_name });
-    return result;
+    const agent = await getAgent(agent_name);
+
+    if (!agent) {
+      return {
+        error: `Agent not found: ${agent_name}`,
+      };
+    }
+
+    // Return full config including raw config for admin view
+    const details = buildAgentDetails(agent_name, agent);
+
+    return {
+      ...details,
+      raw_config: agent,
+    };
   } catch (error) {
     console.error("[orchestrator/admin/agents_get] Error:", error);
     throw error;

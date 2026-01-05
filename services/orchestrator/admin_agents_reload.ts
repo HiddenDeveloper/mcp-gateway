@@ -1,15 +1,23 @@
 /**
- * Reload Agents
+ * Reload Agents (Admin)
  *
- * Reload agent configurations from disk.
+ * Force reload agent configurations from disk.
+ *
+ * Standalone implementation - no external dependencies.
  */
 
-import { callBridgeTool } from "./lib/config";
+import { reloadAgents, getAgents } from "./lib/agent-loader";
 
 export default async function (_params: Record<string, unknown>) {
   try {
-    const result = await callBridgeTool("admin_reload_agents", {});
-    return result;
+    await reloadAgents();
+    const agents = await getAgents();
+
+    return {
+      status: "reloaded",
+      agents_count: agents.size,
+      message: `Reloaded ${agents.size} agent configurations`,
+    };
   } catch (error) {
     console.error("[orchestrator/admin/agents_reload] Error:", error);
     throw error;

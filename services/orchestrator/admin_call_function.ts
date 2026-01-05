@@ -1,10 +1,12 @@
 /**
  * Call Function (Admin)
  *
- * Directly call a function without going through an agent.
+ * Directly call a gateway tool without going through an agent.
+ *
+ * Standalone implementation - routes to gateway services.
  */
 
-import { callBridgeTool } from "./lib/config";
+import { callGatewayTool } from "./lib/config";
 
 interface CallFunctionParams {
   function_name: string;
@@ -19,11 +21,12 @@ export default async function (params: Record<string, unknown>) {
   }
 
   try {
-    const result = await callBridgeTool("admin_call_function", {
+    const result = await callGatewayTool(function_name, args || {});
+
+    return {
       function_name,
-      arguments: args || {},
-    });
-    return result;
+      result,
+    };
   } catch (error) {
     console.error("[orchestrator/admin/call_function] Error:", error);
     throw error;

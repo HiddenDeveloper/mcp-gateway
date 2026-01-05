@@ -46,7 +46,7 @@ The agent autonomously explores and understands the API surface, just like a bro
 
 ```bash
 # Clone and install
-git clone https://github.com/anthropics/mcp-gateway
+git clone https://github.com/HiddenDeveloper/mcp-gateway
 cd mcp-gateway
 bun install
 

@@ -1,10 +1,12 @@
 /**
- * Delete Agent
+ * Delete Agent (Admin)
  *
  * Delete an agent configuration.
+ *
+ * Standalone implementation - no external dependencies.
  */
 
-import { callBridgeTool } from "./lib/config";
+import { deleteAgent } from "./lib/agent-loader";
 
 interface DeleteAgentParams {
   agent_name: string;
@@ -18,8 +20,12 @@ export default async function (params: Record<string, unknown>) {
   }
 
   try {
-    const result = await callBridgeTool("admin_delete_agent", { agent_name });
-    return result;
+    await deleteAgent(agent_name);
+
+    return {
+      status: "deleted",
+      agent_name,
+    };
   } catch (error) {
     console.error("[orchestrator/admin/agents_delete] Error:", error);
     throw error;

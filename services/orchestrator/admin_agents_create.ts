@@ -1,10 +1,12 @@
 /**
- * Create Agent
+ * Create Agent (Admin)
  *
  * Create a new agent configuration.
+ *
+ * Standalone implementation - no external dependencies.
  */
 
-import { callBridgeTool } from "./lib/config";
+import { createAgent, buildAgentDetails } from "./lib/agent-loader";
 
 interface CreateAgentParams {
   name: string;
@@ -38,16 +40,19 @@ export default async function (params: Record<string, unknown>) {
   }
 
   try {
-    const result = await callBridgeTool("admin_create_agent", {
-      name,
+    const agent = await createAgent(name, {
       description,
       system_prompt,
       assigned_functions: assigned_functions || [],
       assigned_agents: assigned_agents || [],
       assigned_mcp_servers: assigned_mcp_servers || [],
-      ...(protocol && { protocol }),
+      protocol,
     });
-    return result;
+
+    return {
+      status: "created",
+      agent: buildAgentDetails(name, agent),
+    };
   } catch (error) {
     console.error("[orchestrator/admin/agents_create] Error:", error);
     throw error;

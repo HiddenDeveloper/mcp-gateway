@@ -1,15 +1,35 @@
 /**
- * List Functions
+ * List Functions (Admin)
  *
- * List all registered functions in the bridge.
+ * List all available gateway tools across all services.
+ *
+ * Standalone implementation - uses the local service registry.
  */
 
-import { callBridgeTool } from "./lib/config";
+import { getServiceRegistry } from "./lib/service-registry";
 
 export default async function (_params: Record<string, unknown>) {
   try {
-    const result = await callBridgeTool("admin_list_functions", {});
-    return result;
+    const registry = getServiceRegistry();
+    const functions = [];
+
+    for (const [serviceName, config] of registry) {
+      for (const tool of config.tools) {
+        functions.push({
+          name: `${serviceName}_${tool.name}`,
+          service: serviceName,
+          method: tool.method,
+          endpoint: `${config.baseUrl}${tool.endpoint}`,
+          description: tool.description,
+          inputSchema: tool.inputSchema,
+        });
+      }
+    }
+
+    return {
+      functions,
+      count: functions.length,
+    };
   } catch (error) {
     console.error("[orchestrator/admin/functions_list] Error:", error);
     throw error;

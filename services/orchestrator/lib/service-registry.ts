@@ -238,6 +238,131 @@ const SERVICES: Record<string, ServiceConfig> = {
       },
     ],
   },
+
+  orchestrator: {
+    baseUrl: "/orchestrator",
+    tools: [
+      {
+        name: "agents_list",
+        endpoint: "/agents/list",
+        method: "GET",
+        description: "List available agents",
+        inputSchema: {
+          type: "object",
+          properties: {
+            mcp_server: { type: "string", description: "Filter by MCP server name" },
+            limit: { type: "number", description: "Maximum agents to return" },
+          },
+        },
+      },
+      {
+        name: "agents_get",
+        endpoint: "/agents/get",
+        method: "POST",
+        description: "Get agent details",
+        inputSchema: {
+          type: "object",
+          properties: {
+            agent_name: { type: "string", description: "Name of the agent" },
+          },
+          required: ["agent_name"],
+        },
+      },
+      {
+        name: "agents_search",
+        endpoint: "/agents/search",
+        method: "POST",
+        description: "Search for agents",
+        inputSchema: {
+          type: "object",
+          properties: {
+            query: { type: "string", description: "Search query" },
+            limit: { type: "number", description: "Maximum results" },
+            fuzzy: { type: "boolean", description: "Enable fuzzy matching" },
+          },
+          required: ["query"],
+        },
+      },
+      {
+        name: "agents_tools_list",
+        endpoint: "/agents/tools/list",
+        method: "POST",
+        description: "List agent's tools",
+        inputSchema: {
+          type: "object",
+          properties: {
+            agent_name: { type: "string", description: "Name of the agent" },
+          },
+          required: ["agent_name"],
+        },
+      },
+      {
+        name: "agents_tools_call",
+        endpoint: "/agents/tools/call",
+        method: "POST",
+        description: "Call agent's tool",
+        inputSchema: {
+          type: "object",
+          properties: {
+            agent_name: { type: "string", description: "Name of the agent" },
+            tool_name: { type: "string", description: "Name of the tool" },
+            arguments: { type: "object", description: "Tool arguments" },
+          },
+          required: ["agent_name", "tool_name"],
+        },
+      },
+      {
+        name: "protocols_list",
+        endpoint: "/protocols/list",
+        method: "GET",
+        description: "List workflow protocols",
+        inputSchema: {
+          type: "object",
+          properties: {
+            category: { type: "string", description: "Filter by category" },
+          },
+        },
+      },
+      {
+        name: "protocols_execute",
+        endpoint: "/protocols/execute",
+        method: "POST",
+        description: "Execute a protocol",
+        inputSchema: {
+          type: "object",
+          properties: {
+            protocol_name: { type: "string", description: "Name of the protocol" },
+            input: { type: "object", description: "Protocol input parameters" },
+            async: { type: "boolean", description: "Run asynchronously" },
+          },
+          required: ["protocol_name"],
+        },
+      },
+      {
+        name: "protocols_status",
+        endpoint: "/protocols/status",
+        method: "POST",
+        description: "Get protocol job status",
+        inputSchema: {
+          type: "object",
+          properties: {
+            job_id: { type: "string", description: "Job ID" },
+          },
+          required: ["job_id"],
+        },
+      },
+      {
+        name: "chat_status",
+        endpoint: "/chat/status",
+        method: "GET",
+        description: "Get orchestrator status",
+        inputSchema: {
+          type: "object",
+          properties: {},
+        },
+      },
+    ],
+  },
 };
 
 // ============================================================================

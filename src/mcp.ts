@@ -153,8 +153,13 @@ export function createMCPHandler(config: GatewayConfig) {
       lines.push("");
     }
 
-    lines.push("MCP Endpoints:");
-    lines.push(`  POST ${baseUrl}/mcp - MCP JSON-RPC protocol`);
+    lines.push("Protocol: MCP → HTTP (Hypermedia Pattern)");
+    lines.push("  1. MCP tools/list returns service_card tools (discovery layer)");
+    lines.push("  2. Each service_card describes HTTP endpoints (NOT MCP tools)");
+    lines.push("  3. Execute operations via HTTP requests to the service URLs");
+    lines.push("");
+    lines.push("MCP Endpoint:");
+    lines.push(`  POST ${baseUrl}/mcp - MCP JSON-RPC for discovery`);
     lines.push("");
     lines.push("Call a service_card tool to discover its HTTP API operations.");
 
@@ -241,8 +246,17 @@ export function createMCPHandler(config: GatewayConfig) {
       }
     }
 
-    // Return structured response
+    // Return structured response with hypermedia explanation
     const response = {
+      _meta: {
+        type: "hypermedia_service_card",
+        protocol: "MCP → HTTP",
+        description: "This service card is an MCP tool that describes HTTP API endpoints. The operations listed below are NOT MCP tools - they are HTTP endpoints. To use them, make HTTP requests to baseUrl + path.",
+        usage: {
+          discovery: "Call this MCP tool (e.g., memory_service_card) to discover available HTTP operations",
+          execution: "Make HTTP requests to the endpoints listed in operations (e.g., POST {baseUrl}/semantic)",
+        },
+      },
       service: serviceId,
       summary: sc.summary,
       description: sc.description,

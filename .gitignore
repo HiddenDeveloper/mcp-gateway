@@ -17,6 +17,8 @@ logs/
 # Editor
 .idea/
 .vscode/
+.gemini/
+.claude/
 *.swp
 *.swo
 
