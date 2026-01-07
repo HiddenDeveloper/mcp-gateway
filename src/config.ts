@@ -24,6 +24,8 @@ export interface SchemaConfig {
   type: string;
   description?: string;
   default?: unknown;
+  example?: unknown;
+  examples?: unknown[];
   enum?: unknown[];
   properties?: Record<string, SchemaConfig>;
   required?: string[];
@@ -96,6 +98,31 @@ export async function loadConfig(path: string): Promise<GatewayConfig> {
   }
   if (!config.services || typeof config.services !== "object") {
     throw new Error("Missing services object in config");
+  }
+
+  for (const [serviceId, service] of Object.entries(config.services)) {
+    if (!Array.isArray(service.servers) || service.servers.length === 0) {
+      throw new Error(`Service "${serviceId}" is missing servers`);
+    }
+    if (!service.service_card?.summary) {
+      throw new Error(`Service "${serviceId}" is missing service_card.summary`);
+    }
+    if (!service.paths || typeof service.paths !== "object") {
+      throw new Error(`Service "${serviceId}" is missing paths`);
+    }
+
+    for (const [path, pathItem] of Object.entries(service.paths)) {
+      const operations = pathItem as Record<string, OperationConfig | undefined>;
+      for (const [method, operation] of Object.entries(operations)) {
+        if (!operation) continue;
+        if (!operation.operationId) {
+          throw new Error(`Service "${serviceId}" path "${path}" ${method} is missing operationId`);
+        }
+        if (!operation.summary) {
+          throw new Error(`Service "${serviceId}" path "${path}" ${method} is missing summary`);
+        }
+      }
+    }
   }
 
   return config;

@@ -59,15 +59,35 @@ export async function createRouter(config: GatewayConfig) {
   async function handle(req: Request): Promise<Response> {
     const url = new URL(req.url);
     const method = req.method;
+    const allowedMethods = new Set<string>();
 
     // Try to match a route
     for (const route of routes) {
-      if (route.method !== method) continue;
-
       const match = url.pathname.match(route.fullPattern);
-      if (match) {
+      if (!match) continue;
+
+      allowedMethods.add(route.method);
+
+      if (route.method === method) {
         return executeHandler(req, route, match);
       }
+    }
+
+    if (allowedMethods.size > 0) {
+      return Response.json(
+        {
+          error: "Method Not Allowed",
+          path: url.pathname,
+          allowed: Array.from(allowedMethods).sort(),
+        },
+        {
+          status: 405,
+          headers: {
+            Allow: Array.from(allowedMethods).sort().join(", "),
+            "Access-Control-Allow-Origin": "*",
+          },
+        }
+      );
     }
 
     return Response.json(

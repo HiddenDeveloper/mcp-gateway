@@ -24,6 +24,17 @@ async function main() {
     async fetch(req) {
       const url = new URL(req.url);
 
+      if (req.method === "OPTIONS") {
+        return new Response(null, {
+          status: 204,
+          headers: {
+            "Access-Control-Allow-Origin": "*",
+            "Access-Control-Allow-Methods": "GET, POST, PUT, PATCH, DELETE, OPTIONS",
+            "Access-Control-Allow-Headers": "Content-Type, Authorization",
+          },
+        });
+      }
+
       // Health check
       if (url.pathname === "/health") {
         return Response.json({ status: "healthy" });
@@ -46,16 +57,6 @@ async function main() {
         }
         if (req.method === "POST") {
           return mcpHandler.handlePost(req);
-        }
-        if (req.method === "OPTIONS") {
-          return new Response(null, {
-            status: 204,
-            headers: {
-              "Access-Control-Allow-Origin": "*",
-              "Access-Control-Allow-Methods": "GET, POST, OPTIONS",
-              "Access-Control-Allow-Headers": "Content-Type, Authorization",
-            },
-          });
         }
       }
 
