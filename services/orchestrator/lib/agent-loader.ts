@@ -80,7 +80,19 @@ export async function getAgents(): Promise<Map<string, AgentConfig>> {
  */
 export async function getAgent(name: string): Promise<AgentConfig | undefined> {
   const agents = await getAgents();
-  return agents.get(name);
+
+  // Try direct key lookup
+  if (agents.has(name)) {
+    return agents.get(name);
+  }
+
+  // Try case-insensitive key lookup and name matching
+  for (const [key, config] of agents) {
+    if (key.toLowerCase() === name.toLowerCase()) return config;
+    if (config.name === name) return config;
+  }
+
+  return undefined;
 }
 
 /**
