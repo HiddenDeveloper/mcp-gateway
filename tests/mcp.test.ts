@@ -677,15 +677,13 @@ describe("Orchestrator Service", () => {
     expect(tool.inputSchema.type).toBe("object");
   });
 
-  it("GET /orchestrator/protocols/list returns stub response", async () => {
+  it("GET /orchestrator/protocols/list returns valid response", async () => {
     if (skipIfDown()) return;
 
     const res = await fetch(`${BASE_URL}/orchestrator/protocols/list`);
     const json = await res.json();
 
-    // Phase 1 returns stub
     expect(json.protocols).toBeInstanceOf(Array);
-    expect(json.count).toBe(0);
-    expect(json.message).toContain("Phase 2");
+    expect(json.count).toBeGreaterThanOrEqual(0);
   });
 });

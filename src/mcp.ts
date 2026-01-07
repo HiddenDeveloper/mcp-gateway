@@ -5,7 +5,7 @@
  * Only service_cards are exposed as MCP tools.
  */
 
-import type { GatewayConfig, ServiceConfig } from "./config";
+import type { GatewayConfig, SchemaConfig, ServiceConfig } from "./config";
 
 interface JsonRpcRequest {
   jsonrpc: string;
@@ -17,7 +17,11 @@ interface JsonRpcRequest {
 interface MCPTool {
   name: string;
   description: string;
-  inputSchema: { type: string; properties: Record<string, unknown> };
+  inputSchema: {
+    type: string;
+    properties: Record<string, unknown>;
+    additionalProperties?: boolean;
+  };
 }
 
 export function createMCPHandler(config: GatewayConfig) {
@@ -27,16 +31,20 @@ export function createMCPHandler(config: GatewayConfig) {
   // Gateway's own service_card
   tools.push({
     name: "service_card",
-    description: config.gateway.service_card.summary,
-    inputSchema: { type: "object", properties: {} },
+    description: [config.gateway.service_card.summary, config.gateway.service_card.description]
+      .filter(Boolean)
+      .join(" — "),
+    inputSchema: { type: "object", properties: {}, additionalProperties: false },
   });
 
   // Each service's service_card
   for (const [serviceId, service] of Object.entries(config.services)) {
     tools.push({
       name: `${serviceId}_service_card`,
-      description: service.service_card.summary,
-      inputSchema: { type: "object", properties: {} },
+      description: [service.service_card.summary, service.service_card.description]
+        .filter(Boolean)
+        .join(" — "),
+      inputSchema: { type: "object", properties: {}, additionalProperties: false },
     });
   }
 
@@ -188,6 +196,7 @@ export function createMCPHandler(config: GatewayConfig) {
         type: string;
         default?: unknown;
         description?: string;
+        example?: unknown;
       }>;
       responses?: {
         success?: Record<string, unknown>;
@@ -208,7 +217,7 @@ export function createMCPHandler(config: GatewayConfig) {
           const schema = operation.requestBody?.content?.["application/json"]?.schema;
           if (schema?.properties) {
             for (const [name, prop] of Object.entries(schema.properties)) {
-              const propSchema = prop as { type?: string; default?: unknown; description?: string };
+              const propSchema = prop as SchemaConfig;
               params.push({
                 name,
                 in: "body",
@@ -216,6 +225,7 @@ export function createMCPHandler(config: GatewayConfig) {
                 type: propSchema.type || "string",
                 default: propSchema.default,
                 description: propSchema.description,
+                example: exampleForSchema(propSchema),
               });
             }
           }
@@ -230,6 +240,7 @@ export function createMCPHandler(config: GatewayConfig) {
                 type: param.schema?.type || "string",
                 default: param.schema?.default,
                 description: param.description,
+                example: exampleForSchema(param.schema),
               });
             }
           }
@@ -275,6 +286,40 @@ export function createMCPHandler(config: GatewayConfig) {
   }
 
   return { handleGet, handlePost };
+}
+
+function exampleForSchema(schema?: SchemaConfig): unknown {
+  if (!schema) {
+    return undefined;
+  }
+
+  if (schema.example !== undefined) {
+    return schema.example;
+  }
+
+  if (Array.isArray(schema.examples) && schema.examples.length > 0) {
+    return schema.examples[0];
+  }
+
+  if (Array.isArray(schema.enum) && schema.enum.length > 0) {
+    return schema.enum[0];
+  }
+
+  switch (schema.type) {
+    case "string":
+      return "example";
+    case "number":
+    case "integer":
+      return 1;
+    case "boolean":
+      return true;
+    case "array":
+      return schema.items ? [exampleForSchema(schema.items)] : [];
+    case "object":
+      return {};
+    default:
+      return undefined;
+  }
 }
 
 function jsonRpcResponse(id: number | string | null, result: unknown): Response {
