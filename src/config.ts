@@ -78,6 +78,14 @@ export interface GatewayConfig {
   services: Record<string, ServiceConfig>;
 }
 
+interface RawGatewayConfig {
+  gateway: {
+    info: GatewayInfo;
+    service_card: ServiceCard;
+  };
+  services: Record<string, ServiceConfig | string>;
+}
+
 export async function loadConfig(path: string): Promise<GatewayConfig> {
   const file = Bun.file(path);
   const exists = await file.exists();
@@ -87,20 +95,41 @@ export async function loadConfig(path: string): Promise<GatewayConfig> {
   }
 
   const content = await file.text();
-  const config = JSON.parse(content) as GatewayConfig;
+  const rawConfig = JSON.parse(content) as RawGatewayConfig;
 
   // Basic validation
-  if (!config.gateway?.info?.title) {
+  if (!rawConfig.gateway?.info?.title) {
     throw new Error("Missing gateway.info.title in config");
   }
-  if (!config.gateway?.service_card?.summary) {
+  if (!rawConfig.gateway?.service_card?.summary) {
     throw new Error("Missing gateway.service_card.summary in config");
   }
-  if (!config.services || typeof config.services !== "object") {
+  if (!rawConfig.services || typeof rawConfig.services !== "object") {
     throw new Error("Missing services object in config");
   }
 
-  for (const [serviceId, service] of Object.entries(config.services)) {
+  const services: Record<string, ServiceConfig> = {};
+  const configDir = path.substring(0, path.lastIndexOf("/"));
+
+  for (const [serviceId, rawService] of Object.entries(rawConfig.services)) {
+    let service: ServiceConfig;
+
+    if (typeof rawService === "string") {
+      // Load service config from referenced file
+      const servicePath = rawService.startsWith(".") 
+        ? `${configDir}/${rawService}` 
+        : rawService;
+      
+      const serviceFile = Bun.file(servicePath);
+      if (!(await serviceFile.exists())) {
+        throw new Error(`Service config file not found: ${servicePath} (referenced by ${serviceId})`);
+      }
+      service = await serviceFile.json();
+    } else {
+      service = rawService;
+    }
+
+    // Validate service config
     if (!Array.isArray(service.servers) || service.servers.length === 0) {
       throw new Error(`Service "${serviceId}" is missing servers`);
     }
@@ -123,7 +152,12 @@ export async function loadConfig(path: string): Promise<GatewayConfig> {
         }
       }
     }
+    
+    services[serviceId] = service;
   }
 
-  return config;
+  return {
+    ...rawConfig,
+    services
+  };
 }

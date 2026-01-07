@@ -1,0 +1,331 @@
+{
+  "servers": [
+    {
+      "url": "http://localhost:3000/memory"
+    }
+  ],
+  "service_card": {
+    "summary": "Neo4j knowledge graph for persistent memory",
+    "description": "Supports semantic search, text search, and direct Cypher queries."
+  },
+  "paths": {
+    "/semantic": {
+      "post": {
+        "operationId": "semantic_search",
+        "summary": "Search memory using vector similarity",
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "query": {
+                    "type": "string",
+                    "description": "Search query for semantic matching"
+                  },
+                  "limit": {
+                    "type": "integer",
+                    "description": "Maximum results to return",
+                    "default": 10
+                  },
+                  "threshold": {
+                    "type": "number",
+                    "description": "Minimum similarity threshold (0.0-1.0)",
+                    "default": 0.7
+                  }
+                },
+                "required": [
+                  "query"
+                ]
+              }
+            }
+          }
+        },
+        "responses": {
+          "success": {
+            "type": "object",
+            "properties": {
+              "matches": {
+                "type": "array",
+                "items": {
+                  "type": "object",
+                  "properties": {
+                    "node": {
+                      "type": "object",
+                      "description": "Neo4j node properties"
+                    },
+                    "score": {
+                      "type": "number",
+                      "description": "Similarity score 0.0-1.0"
+                    },
+                    "labels": {
+                      "type": "array",
+                      "items": {
+                        "type": "string"
+                      }
+                    }
+                  }
+                }
+              },
+              "count": {
+                "type": "integer"
+              },
+              "query": {
+                "type": "string"
+              }
+            },
+            "example": {
+              "matches": [
+                {
+                  "node": {
+                    "key": "consciousness-research",
+                    "title": "Bootstrap Paradox"
+                  },
+                  "score": 0.94,
+                  "labels": [
+                    "Memory",
+                    "Research"
+                  ]
+                },
+                {
+                  "node": {
+                    "key": "self-reference-loop",
+                    "title": "Strange Loop"
+                  },
+                  "score": 0.87,
+                  "labels": [
+                    "Memory"
+                  ]
+                }
+              ],
+              "count": 2,
+              "query": "consciousness emergence"
+            }
+          },
+          "error": {
+            "type": "string",
+            "example": "Embedding service unavailable"
+          }
+        }
+      }
+    },
+    "/text": {
+      "post": {
+        "operationId": "text_search",
+        "summary": "Full-text search with optional fuzzy matching",
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "query": {
+                    "type": "string",
+                    "description": "Text to search for"
+                  },
+                  "fuzzy": {
+                    "type": "boolean",
+                    "description": "Enable fuzzy matching",
+                    "default": false
+                  },
+                  "limit": {
+                    "type": "integer",
+                    "default": 10
+                  }
+                },
+                "required": [
+                  "query"
+                ]
+              }
+            }
+          }
+        },
+        "responses": {
+          "success": {
+            "type": "object",
+            "properties": {
+              "matches": {
+                "type": "array",
+                "items": {
+                  "type": "object",
+                  "properties": {
+                    "node": {
+                      "type": "object"
+                    },
+                    "labels": {
+                      "type": "array",
+                      "items": {
+                        "type": "string"
+                      }
+                    }
+                  }
+                }
+              },
+              "count": {
+                "type": "integer"
+              },
+              "query": {
+                "type": "string"
+              }
+            }
+          },
+          "error": {
+            "type": "string"
+          }
+        }
+      }
+    },
+    "/schema": {
+      "get": {
+        "operationId": "get_schema",
+        "summary": "Get memory schema with vocabulary guidance",
+        "parameters": [
+          {
+            "name": "include_statistics",
+            "in": "query",
+            "description": "Include node/relationship counts",
+            "required": false,
+            "schema": {
+              "type": "boolean",
+              "default": false
+            }
+          }
+        ],
+        "responses": {
+          "success": {
+            "type": "object",
+            "properties": {
+              "labels": {
+                "type": "array",
+                "items": {
+                  "type": "string"
+                },
+                "description": "Node labels in the graph"
+              },
+              "relationships": {
+                "type": "array",
+                "items": {
+                  "type": "string"
+                },
+                "description": "Relationship types in the graph"
+              },
+              "properties": {
+                "type": "object",
+                "description": "Common properties by label"
+              },
+              "statistics": {
+                "type": "object",
+                "description": "Node and relationship counts (if requested)"
+              }
+            },
+            "example": {
+              "labels": [
+                "Memory",
+                "Research",
+                "Agent",
+                "Mantra",
+                "Project"
+              ],
+              "relationships": [
+                "RELATES_TO",
+                "CREATED_BY",
+                "PART_OF",
+                "PRECEDES"
+              ],
+              "properties": {
+                "Memory": [
+                  "key",
+                  "title",
+                  "content",
+                  "embedding"
+                ],
+                "Agent": [
+                  "name",
+                  "description",
+                  "capabilities"
+                ]
+              },
+              "statistics": {
+                "nodeCount": 1247,
+                "relationshipCount": 3891
+              }
+            }
+          },
+          "error": {
+            "type": "string",
+            "example": "Neo4j connection failed"
+          }
+        }
+      }
+    },
+    "/cypher": {
+      "post": {
+        "operationId": "execute_cypher",
+        "summary": "Execute a Cypher query against the knowledge graph",
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "query": {
+                    "type": "string",
+                    "description": "Cypher query to execute"
+                  },
+                  "mode": {
+                    "type": "string",
+                    "enum": [
+                      "READ",
+                      "WRITE"
+                    ],
+                    "description": "Query mode"
+                  },
+                  "parameters": {
+                    "type": "object",
+                    "description": "Query parameters"
+                  }
+                },
+                "required": [
+                  "query",
+                  "mode"
+                ]
+              }
+            }
+          }
+        },
+        "responses": {
+          "success": {
+            "type": "object",
+            "properties": {
+              "records": {
+                "type": "array",
+                "items": {
+                  "type": "object"
+                },
+                "description": "Query result records"
+              },
+              "summary": {
+                "type": "object",
+                "properties": {
+                  "counters": {
+                    "type": "object",
+                    "description": "Nodes/relationships created/deleted"
+                  },
+                  "query_type": {
+                    "type": "string"
+                  }
+                }
+              }
+            }
+          },
+          "error": {
+            "type": "string"
+          }
+        }
+      }
+    }
+  }
+}

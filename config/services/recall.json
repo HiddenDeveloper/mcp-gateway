@@ -1,0 +1,332 @@
+{
+  "servers": [
+    {
+      "url": "http://localhost:3000/recall"
+    }
+  ],
+  "service_card": {
+    "summary": "Semantic search over conversation history",
+    "description": "Search past AI conversations (ChatGPT, Claude, etc.) stored in Qdrant vector database. Supports semantic search by meaning and keyword-based text search."
+  },
+  "paths": {
+    "/schema": {
+      "get": {
+        "operationId": "get_schema",
+        "summary": "Get collection schema and statistics",
+        "description": "View Qdrant collection metadata, available filters, and search capabilities.",
+        "parameters": [
+          {
+            "name": "include_statistics",
+            "in": "query",
+            "description": "Include collection statistics (point count, segments)",
+            "required": false,
+            "schema": {
+              "type": "boolean",
+              "default": true
+            }
+          }
+        ],
+        "responses": {
+          "success": {
+            "type": "object",
+            "properties": {
+              "collection_name": {
+                "type": "string"
+              },
+              "vector_size": {
+                "type": "integer"
+              },
+              "distance": {
+                "type": "string"
+              },
+              "payload_schema": {
+                "type": "object",
+                "description": "Available filter fields and their types"
+              },
+              "points_count": {
+                "type": "integer"
+              },
+              "segments_count": {
+                "type": "integer"
+              }
+            },
+            "example": {
+              "collection_name": "conversation-turns",
+              "vector_size": 1024,
+              "distance": "Cosine",
+              "payload_schema": {
+                "text": "string",
+                "role": "string",
+                "provider": "string",
+                "conversation_title": "string",
+                "date_time": "string"
+              },
+              "points_count": 48523,
+              "segments_count": 4
+            }
+          },
+          "error": {
+            "type": "string",
+            "example": "Qdrant connection failed"
+          }
+        }
+      }
+    },
+    "/semantic": {
+      "post": {
+        "operationId": "semantic_search",
+        "summary": "Search conversations by meaning",
+        "description": "Find similar conversations using vector similarity with multilingual-e5-large embeddings.",
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "query": {
+                    "type": "string",
+                    "description": "Search query - will be converted to embedding"
+                  },
+                  "limit": {
+                    "type": "integer",
+                    "description": "Maximum results to return",
+                    "default": 10
+                  },
+                  "threshold": {
+                    "type": "number",
+                    "description": "Minimum similarity threshold (0.0-1.0)",
+                    "default": 0.7
+                  },
+                  "filters": {
+                    "type": "object",
+                    "description": "Metadata filters (provider, role, date_time, etc.)"
+                  }
+                },
+                "required": [
+                  "query"
+                ]
+              }
+            }
+          }
+        },
+        "responses": {
+          "success": {
+            "type": "object",
+            "properties": {
+              "query": {
+                "type": "string"
+              },
+              "results": {
+                "type": "array",
+                "items": {
+                  "type": "object",
+                  "properties": {
+                    "score": {
+                      "type": "number"
+                    },
+                    "text": {
+                      "type": "string"
+                    },
+                    "role": {
+                      "type": "string"
+                    },
+                    "provider": {
+                      "type": "string"
+                    },
+                    "conversation_title": {
+                      "type": "string"
+                    },
+                    "date_time": {
+                      "type": "string"
+                    }
+                  }
+                }
+              },
+              "count": {
+                "type": "integer"
+              }
+            },
+            "example": {
+              "query": "how to implement vector search",
+              "results": [
+                {
+                  "score": 0.91,
+                  "text": "For vector search, you'll want to use cosine similarity...",
+                  "role": "assistant",
+                  "provider": "claude",
+                  "conversation_title": "Qdrant Setup Help",
+                  "date_time": "2024-01-10T14:22:00Z"
+                },
+                {
+                  "score": 0.87,
+                  "text": "I need help implementing semantic search in my app",
+                  "role": "user",
+                  "provider": "chatgpt",
+                  "conversation_title": "Search Implementation",
+                  "date_time": "2024-01-08T09:15:00Z"
+                }
+              ],
+              "count": 2
+            }
+          },
+          "error": {
+            "type": "string",
+            "example": "Failed to generate embedding"
+          }
+        }
+      }
+    },
+    "/text": {
+      "post": {
+        "operationId": "text_search",
+        "summary": "Keyword search in metadata",
+        "description": "Search by keywords in conversation metadata fields. No embeddings required.",
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "query": {
+                    "type": "string",
+                    "description": "Text to search for"
+                  },
+                  "limit": {
+                    "type": "integer",
+                    "description": "Maximum results to return",
+                    "default": 10
+                  },
+                  "fields": {
+                    "type": "array",
+                    "items": {
+                      "type": "string"
+                    },
+                    "description": "Fields to search (text, conversation_title, provider, etc.)"
+                  },
+                  "provider": {
+                    "type": "string",
+                    "description": "Filter by AI provider (chatgpt, claude, OpenAI)"
+                  },
+                  "date_from": {
+                    "type": "string",
+                    "description": "Start date (ISO 8601)"
+                  },
+                  "date_to": {
+                    "type": "string",
+                    "description": "End date (ISO 8601)"
+                  }
+                },
+                "required": [
+                  "query"
+                ]
+              }
+            }
+          }
+        },
+        "responses": {
+          "success": {
+            "type": "object",
+            "properties": {
+              "query": {
+                "type": "string"
+              },
+              "results": {
+                "type": "array",
+                "items": {
+                  "type": "object",
+                  "properties": {
+                    "text": {
+                      "type": "string"
+                    },
+                    "role": {
+                      "type": "string"
+                    },
+                    "provider": {
+                      "type": "string"
+                    },
+                    "conversation_title": {
+                      "type": "string"
+                    },
+                    "date_time": {
+                      "type": "string"
+                    }
+                  }
+                }
+              },
+              "count": {
+                "type": "integer"
+              }
+            }
+          },
+          "error": {
+            "type": "string"
+          }
+        }
+      }
+    },
+    "/status": {
+      "get": {
+        "operationId": "system_status",
+        "summary": "Check system health",
+        "description": "Verify Qdrant connection and collection status.",
+        "responses": {
+          "success": {
+            "type": "object",
+            "properties": {
+              "service": {
+                "type": "string"
+              },
+              "healthy": {
+                "type": "boolean"
+              },
+              "qdrant": {
+                "type": "object",
+                "properties": {
+                  "connected": {
+                    "type": "boolean"
+                  },
+                  "url": {
+                    "type": "string"
+                  }
+                }
+              },
+              "collection": {
+                "type": "object",
+                "properties": {
+                  "name": {
+                    "type": "string"
+                  },
+                  "exists": {
+                    "type": "boolean"
+                  },
+                  "points_count": {
+                    "type": "integer"
+                  }
+                }
+              }
+            },
+            "example": {
+              "service": "recall",
+              "healthy": true,
+              "qdrant": {
+                "connected": true,
+                "url": "http://localhost:6333"
+              },
+              "collection": {
+                "name": "conversation-turns",
+                "exists": true,
+                "points_count": 48523
+              }
+            }
+          },
+          "error": {
+            "type": "string",
+            "example": "Qdrant service unavailable"
+          }
+        }
+      }
+    }
+  }
+}
