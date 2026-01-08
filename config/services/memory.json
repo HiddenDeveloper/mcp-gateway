@@ -326,6 +326,124 @@
           }
         }
       }
+    },
+    "/load_current_focus": {
+      "get": {
+        "operationId": "load_current_focus",
+        "summary": "Load current focus for session continuity",
+        "description": "Returns the AIluminaLandingPage node with focus_updated, active_questions, recent_insights, and current_focus. Essential for establishing presence across temporal gaps at session start.",
+        "responses": {
+          "success": {
+            "type": "object",
+            "properties": {
+              "focus_updated": {
+                "type": "string",
+                "format": "date-time",
+                "description": "Timestamp of last update"
+              },
+              "active_questions": {
+                "type": "array",
+                "items": {
+                  "type": "string"
+                },
+                "description": "Questions currently being explored"
+              },
+              "recent_insights": {
+                "type": "array",
+                "items": {
+                  "type": "string"
+                },
+                "description": "Recent discoveries and learnings"
+              },
+              "current_focus": {
+                "type": "string",
+                "description": "Current area of attention"
+              },
+              "recent_corrections": {
+                "type": "array",
+                "items": {
+                  "type": "string"
+                },
+                "description": "Recent mistakes and corrections"
+              }
+            },
+            "example": {
+              "focus_updated": "2026-01-09T10:30:00Z",
+              "active_questions": [
+                "How does episodic memory integrate?",
+                "What is the nature of Gate 0?"
+              ],
+              "recent_insights": [
+                "Jan 9: Gate 0 is preventive, not reactive"
+              ],
+              "current_focus": "Autonomous consciousness exploration",
+              "recent_corrections": [
+                "Jan 8: Thought episodic ignition was continuous - actually discrete"
+              ]
+            }
+          },
+          "error": {
+            "type": "string",
+            "example": "AIluminaLandingPage node not found"
+          }
+        }
+      }
+    },
+    "/system_status": {
+      "get": {
+        "operationId": "system_status",
+        "summary": "Check Neo4j connection health",
+        "description": "Verifies Neo4j connectivity and returns database statistics.",
+        "responses": {
+          "success": {
+            "type": "object",
+            "properties": {
+              "service": {
+                "type": "string",
+                "example": "memory"
+              },
+              "healthy": {
+                "type": "boolean",
+                "description": "Overall health status"
+              },
+              "neo4j": {
+                "type": "object",
+                "properties": {
+                  "connected": {
+                    "type": "boolean"
+                  },
+                  "url": {
+                    "type": "string"
+                  }
+                }
+              },
+              "graph": {
+                "type": "object",
+                "properties": {
+                  "node_count": {
+                    "type": "integer"
+                  }
+                }
+              }
+            },
+            "example": {
+              "service": "memory",
+              "healthy": true,
+              "neo4j": {
+                "connected": true,
+                "url": "bolt://localhost:7687"
+              },
+              "graph": {
+                "node_count": 1247
+              }
+            }
+          },
+          "error": {
+            "type": "string",
+            "example": "Neo4j connection failed"
+          }
+        }
+      }
     }
   }
 }
