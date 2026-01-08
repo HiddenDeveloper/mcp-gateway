@@ -31,6 +31,9 @@ export const PROTOCOLS_PATH = rawProtocolsPath.startsWith("~")
 // Gateway URL for internal tool routing
 export const GATEWAY_URL = process.env.GATEWAY_URL || "http://localhost:3000";
 
+// Ailumina Server URL for WebSocket chat
+export const AILUMINA_SERVER_URL = process.env.AILUMINA_SERVER_URL || "ws://localhost:8000";
+
 // Cache TTL for agent configuration (10 minutes)
 export const AGENT_CACHE_TTL = 10 * 60 * 1000;
 

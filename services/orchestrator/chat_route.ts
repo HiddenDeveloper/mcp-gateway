@@ -10,15 +10,17 @@
 
 import { getAgent, buildAgentDetails, getAgentToolNames } from "./lib/agent-loader";
 import { getServiceRegistry } from "./lib/service-registry";
+import { executeAiluminaChat } from "./lib/websocket-client";
 
 interface ChatRouteParams {
   agent_type: string;
   user_input: string;
   chat_messages?: Array<{ role: string; content: string }>;
+  execute?: boolean;
 }
 
 export default async function (params: Record<string, unknown>) {
-  const { agent_type, user_input, chat_messages } = params as ChatRouteParams;
+  const { agent_type, user_input, chat_messages, execute } = params as ChatRouteParams;
 
   if (!agent_type) {
     throw new Error("Missing required parameter: agent_type");
@@ -55,15 +57,22 @@ export default async function (params: Record<string, unknown>) {
       }
     }
 
-    // Return routing information
-    // Note: Full chat functionality requires LLM integration
+    // If execution requested, call the Ailumina server via WebSocket
+    let chatResponse = null;
+    if (execute) {
+      console.log(`[orchestrator/chat_route] Executing chat for agent: ${agent_type}`);
+      chatResponse = await executeAiluminaChat(agent_type, user_input, chat_messages || []);
+    }
+
+    // Return routing and (optional) execution information
     return {
-      status: "routed",
+      status: execute ? "executed" : "routed",
       agent: {
         name: agent_type,
         description: agent.description,
         protocol: agent.protocol,
       },
+      ...(chatResponse && { response: chatResponse }),
       context: {
         system_prompt: agent.system_prompt,
         available_tools: tools,
@@ -75,7 +84,9 @@ export default async function (params: Record<string, unknown>) {
         message_count: chat_messages?.length || 0,
       },
       next_steps: {
-        message: "Chat routing prepared. Use agents_tools_call to execute tools or implement LLM integration for full chat.",
+        message: execute 
+          ? "Chat executed via Ailumina bridge." 
+          : "Chat routing prepared. Use agents_tools_call to execute tools or pass 'execute: true' to call Ailumina bridge directly.",
         example: {
           tool: "orchestrator_agents_tools_call",
           arguments: {

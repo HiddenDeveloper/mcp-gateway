@@ -533,6 +533,11 @@
                       }
                     },
                     "description": "Previous chat messages for context"
+                  },
+                  "execute": {
+                    "type": "boolean",
+                    "description": "If true, actually executes the chat via the Ailumina bridge",
+                    "default": false
                   }
                 },
                 "required": [
