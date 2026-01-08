@@ -66,7 +66,7 @@ async function main() {
   });
 
   console.log(`MCP Gateway running on http://localhost:${server.port}`);
-  console.log(`  Services: ${config.services.length}`);
+  console.log(`  Services: ${Object.keys(config.services).length}`);
   console.log(`  MCP endpoint: http://localhost:${server.port}/mcp`);
 }
 
