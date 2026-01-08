@@ -47,8 +47,10 @@ async function processLine(line: string): Promise<void> {
     const responseText = await response.text();
     log("← Response:", responseText);
 
-    // Write response to stdout
-    console.log(responseText);
+    // Write response to stdout if not empty (handle 204 No Content)
+    if (responseText.trim()) {
+      console.log(responseText);
+    }
   } catch (error) {
     // Send JSON-RPC error response
     const errorResponse = {
