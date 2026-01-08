@@ -28,7 +28,12 @@
     "src",
     "README.md"
   ],
+  "dependencies": {
+    "ws": "^8.18.0",
+    "yaml": "^2.7.0"
+  },
   "devDependencies": {
+    "@types/ws": "^8.5.10",
     "ajv": "^8.17.1",
     "ajv-formats": "^3.0.1"
   }
