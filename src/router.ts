@@ -92,7 +92,10 @@ export async function createRouter(config: GatewayConfig) {
 
     return Response.json(
       { error: "Not Found", path: url.pathname },
-      { status: 404 }
+      { 
+        status: 404,
+        headers: { "Access-Control-Allow-Origin": "*" }
+      }
     );
   }
 
