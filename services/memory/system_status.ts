@@ -11,21 +11,23 @@ export default async function (params: Record<string, unknown>) {
     const neo4j = getNeo4jService();
 
     // Test connection with simple query
-    const testResult = await neo4j.executeQuery("RETURN 1 as test");
-    const connected = testResult.records.length > 0;
+    const testResult = await neo4j.executeCypher("RETURN 1 as test", {}, "READ");
+    const connected = testResult.length > 0;
 
     // Get node count
-    const countResult = await neo4j.executeQuery(
-      "MATCH (n) RETURN count(n) as count"
+    const countResult = await neo4j.executeCypher(
+      "MATCH (n) RETURN count(n) as count",
+      {},
+      "READ"
     );
-    const nodeCount = countResult.records[0]?.get('count') || 0;
+    const nodeCount = countResult[0]?.count || 0;
 
     return {
       service: "memory",
       healthy: connected,
       neo4j: {
         connected,
-        url: process.env.NEO4J_URL || "bolt://localhost:7687"
+        url: process.env.NEO4J_URI || "bolt://localhost:7687"
       },
       graph: {
         node_count: Number(nodeCount)

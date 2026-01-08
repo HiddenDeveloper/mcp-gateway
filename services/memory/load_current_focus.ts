@@ -30,20 +30,20 @@ export default async function (params: Record<string, unknown>) {
       LIMIT 1
     `;
 
-    const result = await neo4j.executeQuery(query);
+    const result = await neo4j.executeCypher(query, {}, "READ");
 
-    if (result.records.length === 0) {
+    if (result.length === 0) {
       throw new Error("AIluminaLandingPage node not found. Has the memory system been initialized?");
     }
 
-    const record = result.records[0];
+    const record = result[0];
 
     return {
-      focus_updated: record.get('focus_updated') || new Date().toISOString(),
-      active_questions: record.get('active_questions') || [],
-      recent_insights: record.get('recent_insights') || [],
-      current_focus: record.get('current_focus') || "No current focus set",
-      recent_corrections: record.get('recent_corrections') || []
+      focus_updated: record.focus_updated || new Date().toISOString(),
+      active_questions: record.active_questions || [],
+      recent_insights: record.recent_insights || [],
+      current_focus: record.current_focus || "No current focus set",
+      recent_corrections: record.recent_corrections || []
     } as LoadCurrentFocusResult;
 
   } catch (error) {
