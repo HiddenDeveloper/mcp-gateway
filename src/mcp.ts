@@ -11,7 +11,7 @@ interface JsonRpcRequest {
   jsonrpc: string;
   method: string;
   params?: Record<string, unknown>;
-  id: number | string;
+  id?: number | string | null;
 }
 
 interface MCPTool {
@@ -82,7 +82,22 @@ export function createMCPHandler(config: GatewayConfig) {
     }
 
     if (body.jsonrpc !== "2.0") {
-      return jsonRpcError(-32600, "Invalid Request: must be JSON-RPC 2.0", body.id);
+      return jsonRpcError(-32600, "Invalid Request: must be JSON-RPC 2.0", null);
+    }
+
+    const isNotification = body.id === undefined;
+    if (isNotification) {
+      // Notifications must not send a JSON-RPC response.
+      if (body.method === "notifications/initialized" || body.method === "ping") {
+        return new Response(null, {
+          status: 204,
+          headers: { "Access-Control-Allow-Origin": "*" },
+        });
+      }
+      return new Response(null, {
+        status: 204,
+        headers: { "Access-Control-Allow-Origin": "*" },
+      });
     }
 
     switch (body.method) {
@@ -94,6 +109,11 @@ export function createMCPHandler(config: GatewayConfig) {
         return handleToolCall(req, body);
       case "ping":
         return handlePing(body.id);
+      case "notifications/initialized":
+        return new Response(null, {
+          status: 204,
+          headers: { "Access-Control-Allow-Origin": "*" },
+        });
       default:
         return jsonRpcError(-32601, `Method not found: ${body.method}`, body.id);
     }
