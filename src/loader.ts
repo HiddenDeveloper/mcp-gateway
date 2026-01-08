@@ -25,6 +25,13 @@ export async function loadFunction(
     return serviceCache.get(cacheKey)!;
   }
 
+  // Basic security: prevent path traversal
+  if (serviceId.includes("..") || serviceId.includes("/") || 
+      operationId.includes("..") || operationId.includes("/")) {
+    console.warn(`  Warning: Invalid serviceId or operationId: ${cacheKey}`);
+    return createStubHandler(serviceId, operationId);
+  }
+
   // Try to load the service
   const servicePath = join(process.cwd(), SERVICES_DIR, serviceId, `${operationId}.ts`);
   const file = Bun.file(servicePath);
