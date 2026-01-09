@@ -242,7 +242,7 @@ describe("Memory Service", () => {
 
     const serviceCard = JSON.parse(json.result.content[0].text);
     expect(serviceCard.service).toBe("memory");
-    expect(serviceCard.operations.length).toBe(4);
+    expect(serviceCard.operations.length).toBe(6);
 
     // Verify all operations are present
     const opIds = serviceCard.operations.map((op: any) => op.operationId);
@@ -250,6 +250,8 @@ describe("Memory Service", () => {
     expect(opIds).toContain("text_search");
     expect(opIds).toContain("get_schema");
     expect(opIds).toContain("execute_cypher");
+    expect(opIds).toContain("load_current_focus");
+    expect(opIds).toContain("system_status");
   });
 
   it("GET /memory/schema returns schema or error", async () => {
