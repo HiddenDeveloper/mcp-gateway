@@ -161,3 +161,120 @@ export async function loadConfig(path: string): Promise<GatewayConfig> {
     services
   };
 }
+
+// ============================================================================
+// Dashboard Configuration Types
+// ============================================================================
+
+export interface DashboardInfo {
+  title: string;
+  version: string;
+  description?: string;
+}
+
+export interface RefreshConfig {
+  default_interval_ms: number;
+  slow_interval_ms: number;
+  fast_interval_ms: number;
+}
+
+export interface LayoutSection {
+  id: string;
+  type: "status-bar" | "card-grid" | "table" | "full-width";
+  columns?: number;
+  components: string[];
+}
+
+export interface ComponentItem {
+  label: string;
+  value_path: string;
+  format: string;
+  limit?: number;
+}
+
+export interface ComponentConfig {
+  type: string;
+  title?: string;
+  data_source: string;
+  refresh_interval: "fast" | "default" | "slow";
+  items?: ComponentItem[];
+  columns?: string[];
+  actions?: string[];
+  max_entries?: number;
+  filters?: string[];
+  label?: string;
+  value_path?: string;
+  format?: string;
+  limit?: number;
+}
+
+export interface DataSourceConfig {
+  type: "http" | "sse" | "websocket";
+  endpoint: string;
+  method?: "GET" | "POST";
+}
+
+export interface DashboardConfig {
+  dashboard: {
+    info: DashboardInfo;
+    refresh: RefreshConfig;
+  };
+  layout: {
+    sections: LayoutSection[];
+  };
+  components: Record<string, ComponentConfig>;
+  data_sources: Record<string, DataSourceConfig>;
+}
+
+/**
+ * Load dashboard configuration from a JSON file
+ */
+export async function loadDashboardConfig(path: string): Promise<DashboardConfig> {
+  const file = Bun.file(path);
+  const exists = await file.exists();
+
+  if (!exists) {
+    throw new Error(`Dashboard config not found: ${path}`);
+  }
+
+  const config = await file.json();
+
+  // Validation
+  if (!config.dashboard?.info?.title) {
+    throw new Error("Missing dashboard.info.title");
+  }
+  if (!config.dashboard?.refresh) {
+    throw new Error("Missing dashboard.refresh");
+  }
+  if (!config.layout?.sections) {
+    throw new Error("Missing layout.sections");
+  }
+  if (!config.components) {
+    throw new Error("Missing components");
+  }
+  if (!config.data_sources) {
+    throw new Error("Missing data_sources");
+  }
+
+  // Validate components reference valid data sources
+  for (const [componentId, component] of Object.entries(config.components)) {
+    if (!config.data_sources[component.data_source]) {
+      throw new Error(
+        `Component "${componentId}" references unknown data source "${component.data_source}"`
+      );
+    }
+  }
+
+  // Validate layout sections reference valid components
+  for (const section of config.layout.sections) {
+    for (const componentId of section.components) {
+      if (!config.components[componentId]) {
+        throw new Error(
+          `Layout section "${section.id}" references unknown component "${componentId}"`
+        );
+      }
+    }
+  }
+
+  return config as DashboardConfig;
+}
